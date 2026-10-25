@@ -340,21 +340,21 @@ body[data-tab='lyrics'] { grid-template-columns: 96px minmax(0, 1fr) 560px; }
 .eqwrap { display: flex; flex-direction: column; gap: 12px; }
 .eqcard { gap: 18px; padding-bottom: 20px; }
 .eqstage { position: relative; padding: 0 4px; }
-.eqcv { position: absolute; left: 4px; top: 28px; height: 240px; width: calc(100% - 8px); pointer-events: none; }
-.bands { display: grid; grid-template-columns: repeat(10, 1fr); position: relative; }
+.eqcv { z-index: 2; position: absolute; left: 4px; top: 28px; height: 240px; width: calc(100% - 8px); pointer-events: none; }
+.bands { z-index: 1; display: grid; grid-template-columns: repeat(10, 1fr); position: relative; }
 .band { --pos: 50%; display: flex; flex-direction: column; align-items: center; gap: 8px; touch-action: none; }
 .bv { height: 20px; font-size: 12px; font-weight: 700; color: var(--primary); font-variant-numeric: tabular-nums; }
 .band.zero .bv { color: var(--on-surface-var); opacity: .7; }
 .bl { font-size: 12px; font-weight: 650; color: var(--on-surface-var); }
-.btrack { position: relative; width: 44px; height: 240px; border-radius: 22px; background: color-mix(in oklch, var(--surface-highest) 70%, transparent); cursor: ns-resize; overflow: hidden; transition: background .2s; }
+.btrack { position: relative; width: 36px; height: 240px; border-radius: 18px; background: color-mix(in oklch, var(--surface-highest) 45%, transparent); cursor: ns-resize; overflow: hidden; transition: background .2s; }
 .band:hover .btrack, .band.drag .btrack { background: var(--surface-highest); }
 .bfill { position: absolute; left: 0; right: 0; top: min(var(--pos), 50%); height: calc(max(var(--pos), 50%) - min(var(--pos), 50%)); background: var(--primary-container); border-radius: 22px; transition: top .12s, height .12s; }
-.bthumb { position: absolute; left: 6px; right: 6px; top: var(--pos); height: 8px; margin-top: -4px; border-radius: 4px; background: var(--primary); transition: top .12s, height .3s var(--spring), margin .3s var(--spring); }
+.bthumb { position: absolute; left: 5px; right: 5px; top: var(--pos); height: 8px; margin-top: -4px; border-radius: 4px; background: var(--primary); transition: top .12s, height .3s var(--spring), margin .3s var(--spring); }
 .band:hover .bthumb, .band.drag .bthumb { height: 12px; margin-top: -6px; }
 .band.drag .bfill, .band.drag .bthumb { transition: none; }
 .btrack::before { content: ''; position: absolute; left: 12px; right: 12px; top: 50%; height: 2px; margin-top: -1px; background: var(--outline); opacity: .6; border-radius: 1px; }
 .presets { display: flex; flex-wrap: wrap; gap: 8px; }
-.pchip { height: 40px; padding: 0 18px; border-radius: 12px; background: var(--surface-high); color: var(--on-surface-var); font-weight: 650; font-size: 14px; transition: background .2s, color .2s, border-radius .4s var(--spring), transform .3s var(--spring); }
+.pchip { height: 40px; padding: 0 14px; border-radius: 12px; background: var(--surface-high); color: var(--on-surface-var); font-weight: 650; font-size: 14px; transition: background .2s, color .2s, border-radius .4s var(--spring), transform .3s var(--spring); }
 .pchip:hover:not(:disabled) { border-radius: 20px; background: var(--surface-highest); }
 .pchip:active:not(:disabled) { transform: scale(.94); }
 .pchip.on { background: var(--primary); color: var(--on-primary); border-radius: 20px; }

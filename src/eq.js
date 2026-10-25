@@ -38,6 +38,7 @@ const filters = EQ_FREQS.map((f, i) => {
   b.Q.value = 1.1;
   return b;
 });
+const shadow = filters.map((f) => { const b = AC.createBiquadFilter(); b.type = f.type; b.frequency.value = f.frequency.value; b.Q.value = f.Q.value; return b; });
 const stereoize = AC.createGain(); // forces mono files up to 2 channels so the matrix below always has L and R
 stereoize.channelCount = 2; stereoize.channelCountMode = 'explicit'; stereoize.channelInterpretation = 'speakers';
 const splitter = AC.createChannelSplitter(2);
@@ -48,7 +49,9 @@ const comp = AC.createDynamicsCompressor();
 const makeup = AC.createGain();
 const analyser = AC.createAnalyser();
 analyser.fftSize = 2048;
-analyser.smoothingTimeConstant = 0.78;
+analyser.smoothingTimeConstant = 0.8;
+analyser.minDecibels = -92; // wide window so loud bass does not clip flat at the top
+analyser.maxDecibels = -6;
 
 source.connect(preamp);
 [preamp, ...filters, stereoize].reduce((a, b) => (a.connect(b), b));
@@ -63,6 +66,7 @@ let curveDirty = true;
 function applyEq() {
   const t = AC.currentTime;
   filters.forEach((f, i) => f.gain.setTargetAtTime(eq.bands[i], t, 0.02));
+  shadow.forEach((f, i) => { f.gain.value = eq.bands[i]; });
   preamp.gain.setTargetAtTime(10 ** (eq.pre / 20), t, 0.02);
   const [ll, lr, rl, rr] = eq.mono ? [0.5, 0.5, 0.5, 0.5] : eq.swap ? [0, 1, 1, 0] : [1, 0, 0, 1];
   mx.ll.gain.value = ll; mx.lr.gain.value = lr; mx.rl.gain.value = rl; mx.rr.gain.value = rr;
@@ -222,32 +226,53 @@ function drawEqViz() {
 
   if (curveDirty) {
     respDb.fill(0);
-    filters.forEach((f) => { f.getFrequencyResponse(respFreq, respMag, respPh); for (let i = 0; i < SPEC_N; i++) respDb[i] += 20 * Math.log10(respMag[i] || 1e-6); });
+    shadow.forEach((f) => { f.getFrequencyResponse(respFreq, respMag, respPh); for (let i = 0; i < SPEC_N; i++) respDb[i] += 20 * Math.log10(respMag[i] || 1e-6); });
     curveDirty = false;
   }
+  const yOfDb = (db) => h / 2 - (clamp(db, -BAND_RANGE * 1.3, BAND_RANGE * 1.3) / (BAND_RANGE * 2)) * h;
+
+  // dB grid: 0 dB is the reference line, ±6 / ±12 are faint
+  g.lineWidth = 1;
+  for (const db of [-12, -6, 0, 6, 12]) {
+    g.globalAlpha = db === 0 ? 0.5 : 0.18;
+    g.strokeStyle = cssColor('--on-surface-var');
+    g.setLineDash(db === 0 ? [] : [3, 6]);
+    g.beginPath(); g.moveTo(0, Math.round(yOfDb(db)) + 0.5); g.lineTo(w, Math.round(yOfDb(db)) + 0.5); g.stroke();
+  }
+  g.setLineDash([]);
 
   analyser.getByteFrequencyData(bins);
   const hz = AC.sampleRate / analyser.fftSize;
   for (let i = 0; i < SPEC_N; i++) {
-    const lo = Math.max(1, Math.floor((specFreq[Math.max(0, i - 1)]) / hz)), hi = Math.max(lo + 1, Math.ceil(specFreq[Math.min(SPEC_N - 1, i + 1)] / hz));
-    let s = 0; for (let b = lo; b < hi; b++) s += bins[b];
-    const v = s / (hi - lo) / 255;
-    specVal[i] += (v - specVal[i]) * (v > specVal[i] ? 0.5 : 0.12);
+    const f = specFreq[i];
+    const lo = Math.floor(specFreq[Math.max(0, i - 1)] / hz), hi = Math.ceil(specFreq[Math.min(SPEC_N - 1, i + 1)] / hz);
+    let v;
+    if (hi - lo <= 2) { // low end: fewer bins than points, so interpolate instead of stair-stepping
+      const fb = f / hz, i0 = Math.floor(fb), fr = fb - i0;
+      v = ((bins[i0] ?? 0) * (1 - fr) + (bins[i0 + 1] ?? 0) * fr) / 255;
+    } else {
+      let m = 0, sum = 0; for (let k = Math.max(1, lo); k < hi; k++) { m = Math.max(m, bins[k]); sum += bins[k]; }
+      v = (m * 0.6 + (sum / (hi - lo)) * 0.4) / 255;
+    }
+    specVal[i] += (v - specVal[i]) * (v > specVal[i] ? 0.55 : 0.14);
   }
+  // light 3-tap smoothing so the silhouette is round, not jagged
+  const sm = (i) => ((specVal[i - 1] ?? specVal[i]) + specVal[i] * 2 + (specVal[i + 1] ?? specVal[i])) / 4;
   g.beginPath();
   g.moveTo(xOf(specFreq[0]), h);
-  for (let i = 0; i < SPEC_N; i++) g.lineTo(xOf(specFreq[i]), h - specVal[i] ** 1.3 * h * 0.92);
+  for (let i = 0; i < SPEC_N; i++) g.lineTo(xOf(specFreq[i]), h - Math.min(1, sm(i) ** 0.85 * 1.2) * h * 0.95);
   g.lineTo(xOf(specFreq[SPEC_N - 1]), h);
   g.closePath();
   const grad = g.createLinearGradient(0, 0, 0, h);
   grad.addColorStop(0, primary); grad.addColorStop(1, 'transparent');
-  g.globalAlpha = 0.32; g.fillStyle = grad; g.fill();
+  g.globalAlpha = 0.16; g.fillStyle = primary; g.fill();
+  g.globalAlpha = 0.5; g.fillStyle = grad; g.fill();
 
-  g.globalAlpha = 1; g.strokeStyle = primary; g.lineWidth = 3; g.lineJoin = 'round'; g.lineCap = 'round';
+  // target response curve, drawn on top of the sliders
+  g.globalAlpha = 1; g.strokeStyle = primary; g.lineWidth = 3.5; g.lineJoin = 'round'; g.lineCap = 'round';
+  g.shadowColor = primary; g.shadowBlur = 12;
   g.beginPath();
-  for (let i = 0; i < SPEC_N; i++) {
-    const y = h / 2 - (clamp(respDb[i], -BAND_RANGE * 1.4, BAND_RANGE * 1.4) / (BAND_RANGE * 2)) * h;
-    i ? g.lineTo(xOf(specFreq[i]), y) : g.moveTo(xOf(specFreq[i]), y);
-  }
+  for (let i = 0; i < SPEC_N; i++) { const y = yOfDb(respDb[i]); i ? g.lineTo(xOf(specFreq[i]), y) : g.moveTo(xOf(specFreq[i]), y); }
   g.stroke();
+  g.shadowBlur = 0;
 }
