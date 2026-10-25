@@ -1,7 +1,7 @@
 {
   "name": "resonance",
   "productName": "Resonance",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "Offline music player in Material 3 Expressive style, with YouTube search, synced lyrics and a 10-band equalizer",
   "main": "src/boot.js",
   "author": "RedArtem39",
