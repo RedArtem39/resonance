@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, screen } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 const { createWriteStream, createReadStream, existsSync } = require('fs');
@@ -44,6 +44,22 @@ function createWindow() {
   const sendState = () => !win.isDestroyed() && win.webContents.send('win:state', win.isMaximized());
   win.on('maximize', sendState);
   win.on('unmaximize', sendState);
+  // Header visibility is decided here, not in the page: a drag region swallows pointer events, but the OS cursor
+  // position is always known. Show at the very top edge, keep while the pointer is on the header (incl. while dragging
+  // the window by it), hide shortly after the pointer leaves.
+  const BAR_H = 26;
+  let barOn = false, away = 0;
+  const poll = setInterval(() => {
+    if (win.isDestroyed()) return clearInterval(poll);
+    if (!win.isVisible() || win.isMinimized()) return;
+    const p = screen.getCursorScreenPoint(), b = win.getBounds();
+    const inX = p.x >= b.x && p.x < b.x + b.width, rel = p.y - b.y;
+    let want = barOn;
+    if (inX && rel >= -12 && rel <= 6 && win.isFocused()) { want = true; away = 0; }
+    else if (barOn && (!inX || rel < -12 || rel > BAR_H + 14)) { if (++away >= 4) want = false; }
+    else away = 0;
+    if (want !== barOn) { barOn = want; win.webContents.send('bar:state', barOn); }
+  }, 60);
   win.loadFile(path.join(__dirname, 'index.html'));
 }
 

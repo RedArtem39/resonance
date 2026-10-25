@@ -68,7 +68,7 @@ body {
   --bar: 0px;
   padding-top: calc(12px + var(--bar));
 }
-body.bar-on { --bar: 34px; }
+body.bar-on { --bar: 26px; }
 button, input { font: inherit; color: inherit; }
 button { border: 0; background: none; cursor: pointer; }
 svg { width: 24px; height: 24px; fill: currentColor; display: block; }
@@ -376,16 +376,12 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--primary); o
 @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
 
 /* ---------- auto-hiding window header (slides in when the pointer touches the top edge) ---------- */
-.hot { position: fixed; inset: 0 0 auto 0; height: 6px; z-index: 40; }
-.bar { position: fixed; inset: 0 0 auto 0; height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 20px; z-index: 30; transform: translateY(-100%); opacity: 0; pointer-events: none; transition: transform .42s var(--smooth), opacity .25s; -webkit-app-region: drag; }
+.bar { position: fixed; inset: 0 0 auto 0; height: 26px; display: flex; align-items: center; justify-content: flex-end; padding: 0 8px 0 8px; z-index: 30; transform: translateY(-100%); opacity: 0; pointer-events: none; transition: transform .4s var(--smooth), opacity .25s; -webkit-app-region: drag; }
 body.bar-on .bar { transform: none; opacity: 1; pointer-events: auto; }
 .bar button { -webkit-app-region: no-drag; }
-.bar-l { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: .03em; color: var(--on-surface-var); }
-.bar-l svg { width: 16px; height: 16px; color: var(--primary); }
-.bar-c { position: absolute; left: 50%; transform: translateX(-50%); max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--on-surface-var); pointer-events: none; }
 .bar-r { display: flex; gap: 4px; }
-.wbtn { width: 46px; height: 26px; border-radius: 13px; display: grid; place-items: center; color: var(--on-surface-var); transition: background .2s, color .2s, border-radius .35s var(--spring), transform .3s var(--spring); }
-.wbtn svg { width: 16px; height: 16px; }
+.wbtn { width: 38px; height: 20px; border-radius: 10px; display: grid; place-items: center; color: var(--on-surface-var); transition: background .2s, color .2s, border-radius .35s var(--spring), transform .3s var(--spring); }
+.wbtn svg { width: 14px; height: 14px; }
 .wbtn:hover { background: var(--surface-highest); color: var(--on-surface); border-radius: 8px; }
 .wbtn:active { transform: scale(.92); }
 .wbtn.close:hover { background: oklch(52% .2 25); color: #fff; }

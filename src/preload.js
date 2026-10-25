@@ -21,5 +21,6 @@ contextBridge.exposeInMainWorld('api', {
   winClose: () => ipcRenderer.send('win:close'),
   winIsMax: () => ipcRenderer.invoke('win:is-max'),
   onWinState: (cb) => on('win:state', cb),
+  onBarState: (cb) => on('bar:state', cb),
   pathOf: (file) => webUtils.getPathForFile(file),
 });
