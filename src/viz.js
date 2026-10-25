@@ -1,13 +1,13 @@
 'use strict';
-// Visualizer behind the transport controls. One button next to the sleep timer cycles: off -> bars -> solid -> off.
+// Visualizer: a full-bleed background across the bottom of the right panel. One button next to the sleep timer cycles: off -> bars -> solid -> off.
 //   bars  : rounded capsules with falling peak caps
-//   solid : one continuous silhouette (a soft wave with an echo layer behind it and a bright outline)
+//   solid : one continuous silhouette (a soft wave with a bright outline)
 //
 // Smoothness: everything is smoothed in TIME (exponential, frame-rate independent, with separate attack/release), then in SPACE
 // (neighbouring bands), and the auto-gain moves slowly, so a single loud frame can no longer make the shape jump.
 
 const vizCv = $('#viz');
-const vizBox = $('.dock-low');
+const vizBox = $('.now');
 const vizBtn = $('#vizBtn');
 const VIZ_BARS = 26, VIZ_WAVE = 72;
 const vizBins = new Uint8Array(analyser.frequencyBinCount);
@@ -15,7 +15,7 @@ const edgesFor = (n) => Array.from({ length: n + 1 }, (_, i) => 45 * (15000 / 45
 const barEdges = edgesFor(VIZ_BARS), waveEdges = edgesFor(VIZ_WAVE);
 
 const barVal = new Float32Array(VIZ_BARS), barPeak = new Float32Array(VIZ_BARS);
-const waveVal = new Float32Array(VIZ_WAVE), waveEcho = new Float32Array(VIZ_WAVE);
+const waveVal = new Float32Array(VIZ_WAVE);
 const rawBar = new Float32Array(VIZ_BARS), rawWave = new Float32Array(VIZ_WAVE);
 let vizMode = 'off', vizBass = 0, vizMax = 0.5, vizLast = 0;
 
@@ -120,8 +120,7 @@ function drawViz(now) {
     }
   } else {
     follow(waveVal, raw, dt, gain, 0.07, 0.28);
-    follow(waveEcho, raw, dt, gain, 0.16, 0.6); // a slower copy trails behind and gives depth
-    const front = blur(waveVal, [1, 2, 3, 2, 1]), back = blur(waveEcho, [1, 2, 3, 4, 3, 2, 1]);
+    const front = blur(waveVal, [1, 2, 3, 2, 1]);
     const sway = (i) => Math.sin(now / 1100 + i * 0.35) * 1.6; // a very gentle drift so a held note still breathes
     const pathFor = (vals, scale, close) => {
       const X = (i) => (i / (VIZ_WAVE - 1)) * w;
@@ -133,7 +132,6 @@ function drawViz(now) {
       if (close) { g.lineTo(w, h); g.closePath(); }
     };
     g.fillStyle = grad;
-    g.globalAlpha = 0.2; pathFor(back, 1.12, true); g.fill();
     g.globalAlpha = 0.52; pathFor(front, 1, true); g.fill();
     g.globalAlpha = 0.9; g.strokeStyle = grad; g.lineWidth = 2.5; g.lineJoin = 'round'; g.lineCap = 'round';
     pathFor(front, 1, false); g.stroke();

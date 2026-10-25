@@ -197,10 +197,6 @@ body[data-tab='now'] .p-now, body[data-tab='lyrics'] .p-lyrics, body[data-tab='q
 .cover .ph { transform: scale(2.6); }
 
 .dock { flex: none; }
-.dock-low { position: relative; }
-#viz { position: absolute; left: -12px; right: -12px; top: -150px; bottom: -8px; width: calc(100% + 24px); height: calc(100% + 158px); pointer-events: none; opacity: 0; transition: opacity .45s var(--smooth); z-index: 0; -webkit-mask-image: linear-gradient(to top, #000 45%, transparent); mask-image: linear-gradient(to top, #000 45%, transparent); }
-.dock-low.viz-on #viz { opacity: 1; }
-.dock-low > .controls, .dock-low > .vol { position: relative; z-index: 1; }
 .meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .mt { flex: 1; min-width: 0; }
 .meta h2 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -513,3 +509,11 @@ input.bal::-webkit-slider-runnable-track { height: 14px; border-radius: 7px; bac
 .dok { background: var(--primary); color: var(--on-primary); }
 .ddanger { background: oklch(58% .2 25); color: #fff; }
 .ddanger:hover:not(:disabled) { background: oklch(54% .21 25); }
+
+
+/* ---------- visualizer: full-bleed background of the whole bottom of the right panel (the panel's rounded corners clip it) ---------- */
+.now { position: relative; overflow: hidden; }
+.now > :not(#viz) { position: relative; z-index: 1; } /* tabs, stage and controls stay above it */
+#viz { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 340px; pointer-events: none; opacity: 0; transition: opacity .45s var(--smooth); z-index: 0;
+  -webkit-mask-image: linear-gradient(to top, #000 42%, transparent); mask-image: linear-gradient(to top, #000 42%, transparent); }
+.now.viz-on #viz { opacity: 1; }
