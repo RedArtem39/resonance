@@ -319,6 +319,7 @@ async function load() {
   audio.play().catch(() => {});
   $('#nTitle').textContent = t.title;
   $('#nArtist').textContent = `${t.artist} · ${t.album}`;
+  $('#barTitle').textContent = `${t.title} — ${t.artist}`;
   $('#fav').classList.toggle('on', S.favs.has(t.path));
   $$('.row.active').forEach((r) => r.classList.remove('active'));
   $$('.row').find((r) => r.dataset.path === t.path)?.classList.add('active');
@@ -594,7 +595,6 @@ $('#queue').addEventListener('click', (e) => {
 
 const applyTheme = (t) => {
   root.dataset.theme = t; store.set('theme', t);
-  window.api.setTitleSymbols?.(t === 'dark' ? '#e6e0ee' : '#2a2433');
 };
 applyTheme(store.get('theme', 'dark'));
 
@@ -610,6 +610,27 @@ addEventListener('drop', (e) => {
   e.preventDefault();
   addFolders([...e.dataTransfer.files].map((f) => window.api.pathOf(f)));
 });
+
+// ---------------------------------------------------------------- window header (Zen-style: hidden until the pointer touches the top edge)
+const BAR_H = 34;
+let barTimer = 0;
+const showBar = (on) => document.body.classList.toggle('bar-on', on);
+const hideBarSoon = () => { clearTimeout(barTimer); barTimer = setTimeout(() => showBar(false), 350); };
+$('#hot').addEventListener('mouseenter', () => { clearTimeout(barTimer); showBar(true); });
+// The header is a drag region and swallows pointer events, so the bar stays up while the pointer rests on it;
+// it hides on the first event that lands clearly below it.
+addEventListener('mousemove', (e) => {
+  if (e.clientY <= 6) { clearTimeout(barTimer); showBar(true); }
+  else if (e.clientY > BAR_H + 16) hideBarSoon();
+  else clearTimeout(barTimer);
+});
+document.documentElement.addEventListener('mouseleave', hideBarSoon);
+$('#wMin').onclick = () => window.api.winMin();
+$('#wMax').onclick = () => window.api.winMax();
+$('#wClose').onclick = () => window.api.winClose();
+const paintMax = (max) => { $('#wMax').innerHTML = svg(max ? 'winRestore' : 'winMax'); $('#wMax').title = max ? 'Свернуть в окно' : 'Развернуть'; };
+window.api.onWinState(paintMax);
+window.api.winIsMax().then(paintMax);
 
 // ---------------------------------------------------------------- boot
 (async () => {

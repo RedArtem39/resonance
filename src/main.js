@@ -37,11 +37,13 @@ function createWindow() {
     minWidth: 1040,
     minHeight: 680,
     backgroundColor: '#14121a',
-    titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#00000000', symbolColor: '#e6e0ee', height: 44 },
+    frame: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
   win.setMenuBarVisibility(false);
+  const sendState = () => !win.isDestroyed() && win.webContents.send('win:state', win.isMaximized());
+  win.on('maximize', sendState);
+  win.on('unmaximize', sendState);
   win.loadFile(path.join(__dirname, 'index.html'));
 }
 
@@ -98,9 +100,11 @@ ipcMain.handle('pick-folder', async () => {
 });
 ipcMain.handle('download-dir', async () => { await fs.mkdir(downloadDir(), { recursive: true }); return downloadDir(); });
 ipcMain.handle('open-dir', (_, p) => shell.openPath(p));
-ipcMain.on('title-symbols', (e, color) => {
-  BrowserWindow.fromWebContents(e.sender)?.setTitleBarOverlay({ color: '#00000000', symbolColor: color, height: 44 });
-});
+const winOf = (e) => BrowserWindow.fromWebContents(e.sender);
+ipcMain.on('win:min', (e) => winOf(e)?.minimize());
+ipcMain.on('win:max', (e) => { const w = winOf(e); if (w) w.isMaximized() ? w.unmaximize() : w.maximize(); });
+ipcMain.on('win:close', (e) => winOf(e)?.close());
+ipcMain.handle('win:is-max', (e) => !!winOf(e)?.isMaximized());
 
 ipcMain.handle('scan', async (e, roots) => {
   let total = 0;

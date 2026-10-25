@@ -31,6 +31,9 @@ const ICON = {
   trash: 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z',
   queueAdd: 'M14 10H3v2h11v-2zm0-4H3v2h11V6zM3 16h7v-2H3v2zm11-1v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2z',
   lyrics: 'M14 17H4v2h10v-2zm6-8H4v2h16V9zM4 15h16v-2H4v2zM4 5v2h16V5H4z',
+  winMin: 'M6 19h12v2H6z',
+  winMax: 'M5 5v14h14V5H5zm12 12H7V7h10v10z',
+  winRestore: 'M7 3v2h12v12h2V3H7zM3 7v14h14V7H3zm12 12H5V9h10v10z',
   video:'M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z',
 };
 const svg = (n) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON[n]}"/></svg>`;

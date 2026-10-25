@@ -16,6 +16,10 @@ contextBridge.exposeInMainWorld('api', {
   onBatch: (cb) => on('scan:batch', cb),
   onYtProgress: (cb) => on('yt:progress', cb),
   onYtStatus: (cb) => on('yt:note', cb),
-  setTitleSymbols: (color) => ipcRenderer.send('title-symbols', color),
-  pathOf:(file) => webUtils.getPathForFile(file),
+  winMin: () => ipcRenderer.send('win:min'),
+  winMax: () => ipcRenderer.send('win:max'),
+  winClose: () => ipcRenderer.send('win:close'),
+  winIsMax: () => ipcRenderer.invoke('win:is-max'),
+  onWinState: (cb) => on('win:state', cb),
+  pathOf: (file) => webUtils.getPathForFile(file),
 });

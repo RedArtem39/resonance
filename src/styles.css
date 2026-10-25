@@ -65,15 +65,17 @@ body {
   background: var(--surface);
   overflow: hidden;
   user-select: none;
+  --bar: 0px;
+  padding-top: calc(12px + var(--bar));
 }
+body.bar-on { --bar: 34px; }
 button, input { font: inherit; color: inherit; }
 button { border: 0; background: none; cursor: pointer; }
 svg { width: 24px; height: 24px; fill: currentColor; display: block; }
 i { display: inline-flex; }
-.drag { position: fixed; inset: 0 150px auto 0; height: 44px; -webkit-app-region: drag; z-index: 5; }
 
 /* ---------- navigation rail ---------- */
-.rail { display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 28px 0 8px; }
+.rail { display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 12px 0 8px; }
 .rail-top { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .fab {
   width: 56px; height: 56px; border-radius: 18px; margin-bottom: 14px;
@@ -177,7 +179,7 @@ h1 { font-size: 46px; line-height: 1.05; font-weight: 700; letter-spacing: -.025
 .btn:active { transform: scale(.94); border-radius: 12px; }
 
 /* ---------- now playing: tabs / stage / dock ---------- */
-.now { background: var(--surface-mid); border-radius: 32px; padding: 52px 28px 22px; display: flex; flex-direction: column; min-height: 0; transition: background .9s var(--smooth); }
+.now { background: var(--surface-mid); border-radius: 32px; padding: 22px 28px 22px; display: flex; flex-direction: column; min-height: 0; transition: background .9s var(--smooth); }
 .tabs { display: flex; gap: 2px; width: 100%; margin-bottom: 8px; flex: none; }
 .tab { flex: 1; height: 40px; background: var(--surface-high); color: var(--on-surface-var); font-weight: 650; font-size: 14px; border-radius: 8px; transition: background .25s, color .25s, border-radius .4s var(--spring); }
 .tab:first-child { border-radius: 20px 8px 8px 20px; }
@@ -238,7 +240,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 6px; 
 input[type=range]:active::-webkit-slider-thumb { width: 4px; }
 
 /* lyrics tab widens the right panel */
-body { transition: grid-template-columns .55s var(--smooth); }
+body { transition: grid-template-columns .55s var(--smooth), padding-top .4s var(--smooth); }
 body[data-tab='lyrics'] { grid-template-columns: 96px minmax(0, 1fr) 560px; }
 
 /* ---------- lyrics ---------- */
@@ -372,3 +374,18 @@ body[data-tab='lyrics'] { grid-template-columns: 96px minmax(0, 1fr) 560px; }
 
 button:focus-visible, input:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
+
+/* ---------- auto-hiding window header (slides in when the pointer touches the top edge) ---------- */
+.hot { position: fixed; inset: 0 0 auto 0; height: 6px; z-index: 40; }
+.bar { position: fixed; inset: 0 0 auto 0; height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 20px; z-index: 30; transform: translateY(-100%); opacity: 0; pointer-events: none; transition: transform .42s var(--smooth), opacity .25s; -webkit-app-region: drag; }
+body.bar-on .bar { transform: none; opacity: 1; pointer-events: auto; }
+.bar button { -webkit-app-region: no-drag; }
+.bar-l { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: .03em; color: var(--on-surface-var); }
+.bar-l svg { width: 16px; height: 16px; color: var(--primary); }
+.bar-c { position: absolute; left: 50%; transform: translateX(-50%); max-width: 42%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--on-surface-var); pointer-events: none; }
+.bar-r { display: flex; gap: 4px; }
+.wbtn { width: 46px; height: 26px; border-radius: 13px; display: grid; place-items: center; color: var(--on-surface-var); transition: background .2s, color .2s, border-radius .35s var(--spring), transform .3s var(--spring); }
+.wbtn svg { width: 16px; height: 16px; }
+.wbtn:hover { background: var(--surface-highest); color: var(--on-surface); border-radius: 8px; }
+.wbtn:active { transform: scale(.92); }
+.wbtn.close:hover { background: oklch(52% .2 25); color: #fff; }
