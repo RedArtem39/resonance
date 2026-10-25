@@ -1,0 +1,14 @@
+{
+  "name": "resonance",
+  "version": "0.1.0",
+  "description": "Offline music player in Material 3 Expressive style",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "license": "MIT",
+  "dependencies": {
+    "electron": "^45.0.0",
+    "music-metadata": "^12.3.0"
+  }
+}
