@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, screen, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 const { createWriteStream, createReadStream, existsSync } = require('fs');
@@ -41,9 +41,21 @@ function createWindow() {
     backgroundColor: '#14121a',
     frame: false,
     icon: path.join(__dirname, '..', 'build', 'icon.png'),
-    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), backgroundThrottling: false }, // keep the queue advancing while hidden in the tray
   });
+  mainWin = win;
   win.setMenuBarVisibility(false);
+  // closing the window hides it to the tray (music keeps playing); Quit in the tray menu really exits
+  win.on('close', (e) => {
+    if (quitting || !closeToTray || !tray) return;
+    e.preventDefault();
+    win.hide();
+    if (!balloonShown) {
+      balloonShown = true;
+      tray.displayBalloon?.({ title: 'Resonance', content: 'Продолжаю играть в трее. Нажми на значок, чтобы открыть окно.', iconType: 'none' });
+    }
+  });
+  win.on('session-end', () => { quitting = true; });
   const sendState = () => !win.isDestroyed() && win.webContents.send('win:state', win.isMaximized());
   win.on('maximize', sendState);
   win.on('unmaximize', sendState);
@@ -65,6 +77,56 @@ function createWindow() {
   }, 60);
   win.loadFile(path.join(__dirname, 'index.html'));
 }
+
+// ------------------------------------------------------------------ tray
+let mainWin = null, tray = null, quitting = false, closeToTray = true, balloonShown = false;
+const player = { playing: false, title: '', artist: '' }; // mirrored from the page, used for the tray menu and tooltip
+
+function showWindow() {
+  if (!mainWin || mainWin.isDestroyed()) return;
+  if (mainWin.isMinimized()) mainWin.restore();
+  mainWin.show();
+  mainWin.focus();
+}
+const toggleWindow = () => (mainWin?.isVisible() && !mainWin.isMinimized() ? mainWin.hide() : showWindow());
+const trayCommand = (cmd) => { if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send('tray:cmd', cmd); };
+
+const trayMenuTemplate = () => [
+  { label: player.title ? `${player.title}${player.artist ? ' — ' + player.artist : ''}` : 'Ничего не играет', enabled: false },
+  { type: 'separator' },
+  { label: player.playing ? 'Пауза' : 'Играть', click: () => trayCommand('toggle') },
+  { label: 'Следующий трек', click: () => trayCommand('next') },
+  { label: 'Предыдущий трек', click: () => trayCommand('prev') },
+  { type: 'separator' },
+  { label: mainWin?.isVisible() ? 'Скрыть окно' : 'Показать окно', click: toggleWindow },
+  { type: 'separator' },
+  { label: 'Выйти', click: () => { quitting = true; app.quit(); } },
+];
+
+function updateTray() {
+  if (!tray) return;
+  tray.setContextMenu(Menu.buildFromTemplate(trayMenuTemplate()));
+  const tip = player.title ? `Resonance — ${player.title}${player.artist ? ' — ' + player.artist : ''}` : 'Resonance';
+  tray.setToolTip(tip.slice(0, 120)); // Windows truncates tooltips at ~128 characters
+}
+
+function createTray() {
+  const icon = nativeImage.createFromPath(path.join(__dirname, '..', 'build', 'icon.png')).resize({ width: 32, height: 32, quality: 'best' });
+  tray = new Tray(icon);
+  tray.on('click', toggleWindow); // left click toggles the window, right click opens the menu
+  mainWin.on('show', updateTray);
+  mainWin.on('hide', updateTray);
+  updateTray();
+}
+
+ipcMain.on('tray:state', (_, s) => { Object.assign(player, { playing: !!s.playing, title: s.title ?? player.title, artist: s.artist ?? player.artist }); updateTray(); });
+ipcMain.on('tray:config', (_, c) => { closeToTray = !!c.closeToTray; });
+app.on('before-quit', () => { quitting = true; });
+
+// one player at a time: starting it again (shortcut, Start menu) brings the existing window back, even from the tray
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) app.quit();
+else app.on('second-instance', showWindow);
 
 // ------------------------------------------------------------------ library scanning
 async function* walk(p) {
@@ -283,6 +345,7 @@ ipcMain.handle('yt:download', async (e, { id, title, author }) => {
 require('./update')({ app, ipcMain });
 
 app.whenReady().then(() => {
+  if (!gotLock) return;
   // The built-in file handler ignores Range (answers 200), which makes tracks unseekable — so serve 206s ourselves.
   protocol.handle('rmedia', async (req) => {
     const p = decodeURIComponent(new URL(req.url).pathname.slice(1));
@@ -305,5 +368,15 @@ app.whenReady().then(() => {
     });
   });
   createWindow();
+  createTray();
 });
 app.on('window-all-closed', () => app.quit());
+
+// handles for tests
+module.exports = {
+  get tray() { return tray; },
+  get win() { return mainWin; },
+  trayCommand,
+  showWindow,
+  menuLabels: () => trayMenuTemplate().map((i) => i.label || '---'),
+};

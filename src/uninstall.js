@@ -5,7 +5,7 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs/promises');
-const { existsSync } = require('fs');
+const { existsSync, writeFileSync } = require('fs');
 const { execFile, spawn } = require('child_process');
 
 // don't hold the real profile (%APPDATA%\Resonance) open — "purge" has to be able to delete it
@@ -42,10 +42,24 @@ async function removeAll(purge) {
   removed = true;
 }
 
-// The running exe can't delete its own folder: hand that to a detached shell that waits for us to exit.
+// The running exe can't delete its own folder: hand that to a detached script that waits for us to exit and retries
+// (antivirus or the indexer can hold a handle for a moment, which used to leave an empty folder behind).
 function scheduleDelete() {
   if (!removed || !looksInstalled) return;
-  spawn('cmd.exe', ['/c', `ping 127.0.0.1 -n 4 >nul & rmdir /s /q "${dir}"`], { detached: true, stdio: 'ignore', windowsHide: true, windowsVerbatimArguments: true }).unref();
+  const script = path.join(os.tmpdir(), `resonance-uninstall-${process.pid}.cmd`);
+  const body = [
+    '@echo off',
+    'ping 127.0.0.1 -n 3 >nul',
+    'for /l %%i in (1,1,20) do (',
+    `  rmdir /s /q "${dir}" 2>nul`,
+    `  if not exist "${dir}" goto done`,
+    '  ping 127.0.0.1 -n 2 >nul',
+    ')',
+    ':done',
+    'del "%~f0"',
+  ].join('\r\n');
+  try { writeFileSync(script, body); } catch { return; }
+  spawn('cmd.exe', ['/c', script], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
 }
 
 ipcMain.handle('un:info', () => ({ dir, locale: app.getLocale(), ok: looksInstalled }));

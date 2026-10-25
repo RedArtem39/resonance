@@ -6,7 +6,7 @@ const S = {
   queue: [], i: -1, shuffle: false, repeat: 0, // repeat: 0 off, 1 all, 2 one
   folders: store.get('folders', []),
   favs: new Set(store.get('favs', [])),
-  set: { yt: true, autoplay: true, updates: true, ...store.get('settings', {}) },
+  set: { yt: true, autoplay: true, updates: true, tray: true, ...store.get('settings', {}) },
   yt: { q: '', status: 'idle', items: [] },
   dl: new Map(), // youtube id -> { state: 'dl' | 'done' | 'err', pct }
   dlDir: '',
@@ -266,6 +266,10 @@ function renderSettings(c) {
       <p class="hint">Скачивание с YouTube может противоречить условиям сервиса и авторским правам. Используй для контента, на который у тебя есть права.</p>
     </div>
     <div class="panel">
+      <h4>Окно</h4>
+      ${switchRow('setTray', 'Сворачивать в трей при закрытии', 'Крестик прячет окно в трей, музыка продолжает играть. Выйти можно из меню значка в трее.', S.set.tray)}
+    </div>
+    <div class="panel">
       <h4>Обновления</h4>
       <div class="frow"><span><b id="appVer">Resonance</b><small id="updStatus">Нажми «Проверить», чтобы посмотреть версии на GitHub.</small></span><button class="mini" id="updCheck">${svg('refresh')}<span>Проверить</span></button></div>
       ${switchRow('setUpdAuto', 'Проверять при запуске', 'Только запрос к GitHub — ничего не ставится без твоего нажатия.', S.set.updates)}
@@ -359,6 +363,7 @@ async function load() {
   audio.play().catch(() => {});
   $('#nTitle').textContent = t.title;
   $('#nArtist').textContent = `${t.artist} · ${t.album}`;
+  pushTray();
   $('#fav').classList.toggle('on', S.favs.has(t.path));
   $$('.row.active').forEach((r) => r.classList.remove('active'));
   $$('.row').find((r) => r.dataset.path === t.path)?.classList.add('active');
@@ -410,7 +415,15 @@ function renderQueue() {
 audio.addEventListener('ended', () => { if (S.repeat === 2) { audio.currentTime = 0; audio.play(); } else step(1); });
 audio.addEventListener('play', syncPlay);
 audio.addEventListener('pause', syncPlay);
+// the tray menu/tooltip mirror what is playing
+function pushTray() {
+  const t = byPath.get(S.queue[S.i]);
+  window.api.trayState({ playing: !audio.paused, title: t?.title ?? '', artist: t?.artist ?? '' });
+}
+window.api.onTrayCmd((cmd) => { if (cmd === 'toggle') toggle(); else if (cmd === 'next') step(1); else if (cmd === 'prev') $('#prev').click(); });
+
 function syncPlay() {
+  pushTray();
   $('#play').classList.toggle('playing', !audio.paused);
   $('#playIcon').innerHTML = svg(audio.paused ? 'play' : 'pause');
   if ('mediaSession' in navigator) navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
@@ -629,6 +642,7 @@ $('#content').addEventListener('change', (e) => {
   if (e.target.id === 'setYt') { S.set.yt = e.target.checked; saveSet(); if (!S.set.yt) { ytSeq++; S.yt = { q: '', status: 'idle', items: [] }; } toast(S.set.yt ? 'Поиск на YouTube включён' : 'Только локальный поиск', 2000); }
   if (e.target.id === 'setAuto') { S.set.autoplay = e.target.checked; saveSet(); }
   if (e.target.id === 'setUpdAuto') { S.set.updates = e.target.checked; saveSet(); }
+  if (e.target.id === 'setTray') { S.set.tray = e.target.checked; saveSet(); window.api.trayConfig({ closeToTray: S.set.tray }); }
 });
 $('#chips').addEventListener('click', (e) => { if (e.target.closest('#clearFilter')) { S.filter = null; render(); } });
 $('#queue').addEventListener('click', (e) => {
@@ -666,6 +680,7 @@ window.api.winIsMax().then(paintMax);
 // ---------------------------------------------------------------- boot
 (async () => {
   syncPlay();
+  window.api.trayConfig({ closeToTray: S.set.tray });
   S.dlDir = await window.api.downloadDir();
   renderQueue();
   await rescan();

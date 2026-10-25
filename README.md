@@ -22,6 +22,7 @@
 - Library views: tracks, albums, artists, favourites. Fast search across title, artist and album.
 - Queue, shuffle, repeat (off / all / one), playback speed (0.75–1.5×) and a sleep timer with a fade-out.
 - Media keys and the OS media overlay are supported.
+- System tray: play/pause, next/previous and show/hide from the tray menu; the tooltip shows the current track. Closing the window hides it to the tray and the music keeps playing (can be turned off in *Settings*); *Quit* in the tray menu exits. Launching Resonance again just brings the existing window back.
 
 **Design**
 - Material 3 Expressive: tonal surfaces, large shapes, shape-morphing buttons and spring motion.
@@ -55,6 +56,8 @@
 Download `Resonance-Setup-<version>.exe` from the [Releases](../../releases) page and run it. It is a small custom installer (also built with Electron, see [`installer/`](installer)): per-user, no administrator rights, it creates shortcuts and registers an uninstaller in *Apps & features*. Run it again later to update or repair.
 
 The installer is **not code-signed**, so Windows SmartScreen may show an "unknown publisher" warning. Choose *More info → Run anyway*.
+
+The installer is a self-extracting Electron app, so its window can take several seconds to appear after you start it (it has to unpack the ~320 MB Electron runtime first; Electron itself starts in about a second).
 
 Silent install for scripts: `Resonance-Setup-<version>.exe --silent [--dir=<path>] [--desktop] [--startmenu] [--launch]`.
 Silent uninstall: `"<install dir>\Resonance.exe" --uninstall --silent [--purge]` (`--purge` also deletes settings and cache; downloaded music is never touched).
