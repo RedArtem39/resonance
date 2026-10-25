@@ -615,7 +615,7 @@ window.api.onBarState((on) => document.body.classList.toggle('bar-on', on)); // 
 $('#wMin').onclick = () => window.api.winMin();
 $('#wMax').onclick = () => window.api.winMax();
 $('#wClose').onclick = () => window.api.winClose();
-const paintMax = (max) => { $('#wMax').innerHTML = svg(max ? 'winRestore' : 'winMax'); $('#wMax').title = max ? 'Свернуть в окно' : 'Развернуть'; };
+const paintMax = (max) => { $('#wMax').innerHTML = max ? '<svg viewBox="0 0 16 16"><rect x="3.5" y="5.5" width="7" height="7" rx="1"/><path d="M5.5 5.5v-1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-1"/></svg>' : '<svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/></svg>'; $('#wMax').title = max ? 'Свернуть в окно' : 'Развернуть'; };
 window.api.onWinState(paintMax);
 window.api.winIsMax().then(paintMax);
 

@@ -47,7 +47,7 @@ function createWindow() {
   // Header visibility is decided here, not in the page: a drag region swallows pointer events, but the OS cursor
   // position is always known. Show at the very top edge, keep while the pointer is on the header (incl. while dragging
   // the window by it), hide shortly after the pointer leaves.
-  const BAR_H = 26;
+  const BAR_H = 35;
   let barOn = false, away = 0;
   const poll = setInterval(() => {
     if (win.isDestroyed()) return clearInterval(poll);
