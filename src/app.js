@@ -235,8 +235,10 @@ async function ytGet(id) {
     if (!S.tracks.some((x) => x.path === t.path)) S.tracks.push(t);
     sorted(S.tracks);
     S.dl.set(id, { state: 'done' });
+    sfx.play('done');
     if (S.set.autoplay) playQueue([t], 0);
   } catch (err) {
+    sfx.play('error');
     S.dl.set(id, { state: 'err' });
     const msg = String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
     const bot = /not a bot|Sign in to confirm/i.test(msg);
@@ -274,6 +276,12 @@ function renderSettings(c) {
       <div class="frow"><span><b>Файл cookies</b><small id="ckStatus">Проверяю…</small></span><div class="btns"><button class="mini" id="ckImport">Импорт…</button><button class="mini" id="ckRemove">Удалить</button></div></div>
     </div>
     <div class="panel">
+      <h4>Звуки и эффекты</h4>
+      ${switchRow('setSfx', 'Звуки интерфейса', 'Короткие щелчки, тумблеры, свуш панелей и треск молнии. Синтезируются прямо в плеере.', S.set.sfx !== false)}
+      <label class="rrow"><span>Громкость звуков</span><input id="setSfxVol" type="range" min="0" max="1" step="0.01" value="${S.set.sfxVol ?? 0.6}"><output id="setSfxVolV"></output></label>
+      ${switchRow('setFx', 'Молния в эквалайзере', 'Разряд по полосам при смене пресета и после настройки ползунка.', S.set.fx !== false)}
+    </div>
+    <div class="panel">
       <h4>Окно</h4>
       ${switchRow('setTray', 'Сворачивать в трей при закрытии', 'Крестик прячет окно в трей, музыка продолжает играть. Выйти можно из меню значка в трее.', S.set.tray)}
     </div>
@@ -291,6 +299,7 @@ function renderSettings(c) {
   </div>`;
   $$('#setTheme button', c).forEach((b) => b.classList.toggle('on', b.dataset.t === root.dataset.theme));
   paintCookies();
+  { const r = $('#setSfxVol'); if (r) { r.style.setProperty('--p', r.value * 100 + '%'); $('#setSfxVolV').textContent = Math.round(r.value * 100) + '%'; } }
   window.api.appInfo().then((i) => { const el = $('#appVer'); if (el) el.textContent = `Resonance ${i.version}${i.installed ? '' : ' (режим разработки)'}`; });
   if (S.upd) paintVersions();
   // yt-dlp is a one-file exe that takes a moment to start, so the version fills in after the panel is already up
@@ -662,10 +671,18 @@ async function handleContent(e) {
   const th = t.closest('#setTheme button');
   if (th) { applyTheme(th.dataset.t); $$('#setTheme button').forEach((b) => b.classList.toggle('on', b === th)); }
 }
+$('#content').addEventListener('input', (e) => {
+  if (e.target.id !== 'setSfxVol') return;
+  S.set.sfxVol = +e.target.value; saveSet(); sfx.configure({ volume: S.set.sfxVol });
+  e.target.style.setProperty('--p', e.target.value * 100 + '%'); $('#setSfxVolV').textContent = Math.round(e.target.value * 100) + '%';
+});
 $('#content').addEventListener('change', (e) => {
   if (e.target.id === 'setYt') { S.set.yt = e.target.checked; saveSet(); if (!S.set.yt) { ytSeq++; S.yt = { q: '', status: 'idle', items: [] }; } toast(S.set.yt ? 'Поиск на YouTube включён' : 'Только локальный поиск', 2000); }
   if (e.target.id === 'setAuto') { S.set.autoplay = e.target.checked; saveSet(); }
   if (e.target.id === 'setCookies') { S.set.ytCookies = e.target.checked; saveSet(); }
+  if (e.target.id === 'setSfx') { S.set.sfx = e.target.checked; saveSet(); sfx.configure({ enabled: S.set.sfx }); if (S.set.sfx) sfx.play('on'); }
+  if (e.target.id === 'setFx') { S.set.fx = e.target.checked; saveSet(); eqFx.enabled = S.set.fx; }
+  if (e.target.id === 'setSfxVol') sfx.play('done'); // a sample at the new volume, once the slider is released
   if (e.target.id === 'setUpdAuto') { S.set.updates = e.target.checked; saveSet(); }
   if (e.target.id === 'setTray') { S.set.tray = e.target.checked; saveSet(); window.api.trayConfig({ closeToTray: S.set.tray }); }
 });
@@ -705,6 +722,8 @@ window.api.winIsMax().then(paintMax);
 // ---------------------------------------------------------------- boot
 (async () => {
   syncPlay();
+  sfx.configure({ enabled: S.set.sfx !== false, volume: S.set.sfxVol ?? 0.6 });
+  eqFx.enabled = S.set.fx !== false;
   window.api.trayConfig({ closeToTray: S.set.tray });
   S.dlDir = await window.api.downloadDir();
   renderQueue();

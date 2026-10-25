@@ -407,3 +407,38 @@ body.bar-on .bar { transform: none; pointer-events: auto; }
 .cand span { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--on-surface-var); }
 .cand:hover span { color: inherit; opacity: .8; }
 .btns { display: flex; gap: 8px; flex: none; }
+
+/* ---------- equalizer: motion, glass handles, lightning layer ---------- */
+.eqfx { position: absolute; left: 4px; top: 8px; height: 280px; width: calc(100% - 8px); pointer-events: none; z-index: 3; }
+.band { animation: bandIn .75s var(--spring) backwards; animation-delay: calc(var(--i) * 45ms); }
+@keyframes bandIn { from { opacity: 0; transform: translateY(26px) scale(.9); } }
+.eqwrap > * { animation: panelIn .6s var(--smooth) backwards; }
+.eqwrap > :nth-child(2) { animation-delay: .14s; }
+@keyframes panelIn { from { opacity: 0; transform: translateY(18px); } }
+.btrack { box-shadow: inset 0 0 0 1px rgb(255 255 255 / .05); background-image: linear-gradient(90deg, rgb(255 255 255 / .05), transparent 45%, rgb(0 0 0 / .08)); }
+.bthumb { background: linear-gradient(var(--primary), color-mix(in oklch, var(--primary) 72%, white)); transition: top .12s, height .3s var(--spring), margin .3s var(--spring), box-shadow .25s; }
+.band:hover .bthumb { box-shadow: 0 0 14px color-mix(in oklch, var(--primary) 65%, transparent); }
+.band.drag .bthumb { box-shadow: 0 0 22px 2px color-mix(in oklch, var(--primary) 80%, transparent); }
+.band.drag .bv { transform: translateY(-3px) scale(1.18); }
+.bv { transition: transform .3s var(--spring), color .2s; }
+.band.hit .btrack { animation: trackFlash .9s var(--smooth); }
+.band.hit .bthumb { animation: thumbFlash .7s var(--smooth); }
+@keyframes trackFlash { 0% { background-color: color-mix(in oklch, var(--primary) 55%, var(--surface-highest)); box-shadow: 0 0 26px color-mix(in oklch, var(--primary) 70%, transparent); } }
+@keyframes thumbFlash { 0% { background: #fff; box-shadow: 0 0 24px 6px #fff; transform: scaleX(1.25); } }
+
+/* ---------- audio panel ---------- */
+.audiogrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.audiogrid .wide { grid-column: 1 / -1; }
+.balcard { gap: 8px; }
+.bhead { display: flex; align-items: baseline; justify-content: space-between; }
+.bcenter { color: var(--primary); font-weight: 700; font-size: 13.5px; transition: color .2s; }
+.bslide { position: relative; height: 46px; display: flex; align-items: center; transition: opacity .25s; }
+.balcard.dim .bslide { opacity: .4; pointer-events: none; }
+.bticks { position: absolute; inset: 0 6px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+.bticks i { width: 2px; height: 18px; border-radius: 1px; background: var(--on-surface-var); opacity: .32; }
+.bticks i:nth-child(odd) { height: 26px; }
+.bticks i.mid { width: 3px; height: 34px; opacity: .7; }
+input.bal { position: relative; z-index: 1; --lo: 50%; --hi: 50%; }
+input.bal::-webkit-slider-runnable-track { height: 14px; border-radius: 7px; background: linear-gradient(to right, var(--surface-highest) var(--lo), var(--primary) var(--lo), var(--primary) var(--hi), var(--surface-highest) var(--hi)); }
+.bread { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700; color: var(--on-surface-var); font-variant-numeric: tabular-nums; }
+.panel .hint { margin: 0; }
