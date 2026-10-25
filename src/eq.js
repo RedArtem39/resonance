@@ -38,7 +38,6 @@ const filters = EQ_FREQS.map((f, i) => {
   b.Q.value = 1.1;
   return b;
 });
-const shadow = filters.map((f) => { const b = AC.createBiquadFilter(); b.type = f.type; b.frequency.value = f.frequency.value; b.Q.value = f.Q.value; return b; });
 const stereoize = AC.createGain(); // forces mono files up to 2 channels so the matrix below always has L and R
 stereoize.channelCount = 2; stereoize.channelCountMode = 'explicit'; stereoize.channelInterpretation = 'speakers';
 const splitter = AC.createChannelSplitter(2);
@@ -64,11 +63,9 @@ mx.ll.connect(merger, 0, 0); mx.rl.connect(merger, 0, 0);
 mx.lr.connect(merger, 0, 1); mx.rr.connect(merger, 0, 1);
 [merger, panner, comp, makeup, limiter, analyser, AC.destination].reduce((a, b) => (a.connect(b), b));
 
-let curveDirty = true;
 function applyEq() {
   const t = AC.currentTime;
   filters.forEach((f, i) => f.gain.setTargetAtTime(eq.bands[i], t, 0.02));
-  shadow.forEach((f, i) => { f.gain.value = eq.bands[i]; });
   preamp.gain.setTargetAtTime(10 ** (eq.pre / 20), t, 0.02);
   const [ll, lr, rl, rr] = eq.mono ? [0.5, 0.5, 0.5, 0.5] : eq.swap ? [0, 1, 1, 0] : [1, 0, 0, 1];
   mx.ll.gain.value = ll; mx.lr.gain.value = lr; mx.rl.gain.value = rl; mx.rr.gain.value = rr;
@@ -77,7 +74,6 @@ function applyEq() {
   comp.threshold.value = d.threshold; comp.knee.value = d.knee; comp.ratio.value = d.ratio;
   comp.attack.value = d.attack; comp.release.value = d.release;
   makeup.gain.setTargetAtTime(d.makeup, t, 0.05);
-  curveDirty = true;
 }
 applyEq();
 audio.addEventListener('play', () => { if (AC.state !== 'running') AC.resume(); });

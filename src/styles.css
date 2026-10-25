@@ -460,3 +460,16 @@ input.bal::-webkit-slider-runnable-track { height: 14px; border-radius: 7px; bac
 .band.hit .btrack { animation: tubeFlash .9s var(--smooth); }
 @keyframes orbFlash { 0% { filter: brightness(2.4) saturate(.35); transform: scale(1.6); } }
 @keyframes tubeFlash { 0% { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--bc) 80%, transparent), 0 0 26px 2px var(--bc); } }
+
+/* ---------- equalizer stage: dark glass inset in every theme, so the glow and the lightning always look electric ---------- */
+.eqstage { position: relative; padding: 14px 10px 10px; border-radius: 26px; color: var(--on-surface);
+  /* local tokens: the page theme (light or dark) must not recolour the stage */
+  --primary: oklch(82% calc(var(--c) * 1.15) var(--h));
+  --tertiary: oklch(82% calc(var(--c) * 1.05) calc(var(--h) + 62));
+  --on-surface: oklch(94% calc(var(--c) * .1) var(--h));
+  --on-surface-var: oklch(78% calc(var(--c) * .25) var(--h));
+  --surface-mid: oklch(17.5% calc(var(--c) * .3) var(--h));
+  --surface-highest: oklch(30% calc(var(--c) * .35) var(--h));
+  background: radial-gradient(130% 100% at 50% -10%, oklch(25% calc(var(--c) * .55) var(--h)), oklch(15.5% calc(var(--c) * .3) var(--h)) 72%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .07), inset 0 -30px 60px rgb(0 0 0 / .25); transition: background .9s var(--smooth); }
+.eqcard { padding-top: 14px; }

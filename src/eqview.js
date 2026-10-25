@@ -131,6 +131,7 @@ function renderEq(c) {
   $('#eqTest', c).onclick = () => eqTest((s) => $$('#eqTest .ch', c).forEach((n) => n.classList.toggle('on', n.dataset.s === s || s === 'C')));
   $('#eqReset', c).onclick = () => { resetAudio(); paintAll(); };
   paintAll();
+  alignEqCanvases();
   setTimeout(eqZap, 520); // a first bolt as the bands finish sliding in
 }
 
@@ -195,8 +196,8 @@ function drawFx(now) {
     }
   }
 
-  const primary = cssColor('--primary'), tertiary = cssColor('--tertiary');
-  const core = document.documentElement.dataset.theme === 'light' ? cssColor('--on-surface') : '#ffffff';
+  const primary = stageColor('--primary'), tertiary = stageColor('--tertiary');
+  const core = '#ffffff';
   const grad = g.createLinearGradient(0, 0, w, 0);
   grad.addColorStop(0, primary); grad.addColorStop(1, tertiary);
 
@@ -252,11 +253,33 @@ function drawFx(now) {
   g.globalAlpha = 1;
 }
 
-// ---------------------------------------------------------------- response curve + dB grid (called from the main frame loop)
-const SPEC_N = 140;
-const specFreq = Array.from({ length: SPEC_N }, (_, i) => 20 * 1000 ** (i / (SPEC_N - 1)));
-const respFreq = Float32Array.from(specFreq);
-const respMag = new Float32Array(SPEC_N), respPh = new Float32Array(SPEC_N), respDb = new Float32Array(SPEC_N);
+// ---------------------------------------------------------------- stage colours, alignment, dB grid, live band levels
+// The stage is a dark glass inset in every theme (see .eqstage in the CSS), with bright palette colours. Canvases must read those
+// scoped tokens, so each colour is resolved through a probe element that lives inside the stage.
+function stageColor(name) {
+  const st = $('.eqstage');
+  if (!st) return '#fff';
+  let el = st.querySelector(`i.probe[data-v="${name}"]`);
+  if (!el) {
+    el = document.createElement('i');
+    el.className = 'probe'; el.dataset.v = name;
+    el.style.cssText = `position:absolute;visibility:hidden;pointer-events:none;color:var(${name})`;
+    st.append(el);
+  }
+  return getComputedStyle(el).color;
+}
+
+// Put both canvases exactly over the tubes. Measured from the real layout (a hard-coded offset was 4 px off, which made the grid
+// and the bolt miss the orb centres).
+const FX_HEAD = 20, TRACK_H = 240;
+function alignEqCanvases() {
+  const bands = $('.bands'), track = $('.btrack'), cv = $('.eqcv'), fxc = $('.eqfx');
+  if (!bands || !track || !cv || !fxc) return;
+  const top = bands.offsetTop + track.offsetTop, left = bands.offsetLeft, width = bands.offsetWidth;
+  Object.assign(cv.style, { left: left + 'px', width: width + 'px', top: top + 'px', height: TRACK_H + 'px' });
+  Object.assign(fxc.style, { left: left + 'px', width: width + 'px', top: top - FX_HEAD + 'px', height: TRACK_H + 2 * FX_HEAD + 'px' });
+}
+addEventListener('resize', alignEqCanvases);
 
 // Each band's orb and tube breathe with the actual (post-EQ) energy around its frequency: --lvl is read by the CSS glow.
 const eqBins = new Uint8Array(analyser.frequencyBinCount);
@@ -288,34 +311,18 @@ function drawEqViz() {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
 
-  const colW = w / 10;
-  const xOf = (f) => colW / 2 + (Math.log2(f / 31) / Math.log2(16000 / 31)) * (w - colW);
-  const primary = cssColor('--primary');
-
-  if (curveDirty) {
-    respDb.fill(0);
-    shadow.forEach((f) => { f.getFrequencyResponse(respFreq, respMag, respPh); for (let i = 0; i < SPEC_N; i++) respDb[i] += 20 * Math.log10(respMag[i] || 1e-6); });
-    curveDirty = false;
-  }
-  const yOfDb = (db) => h / 2 - (clamp(db, -BAND_RANGE * 1.3, BAND_RANGE * 1.3) / (BAND_RANGE * 2)) * h;
-
   // dB grid: 0 dB is the reference line, ±6 / ±12 are faint
+  const yOfDb = (db) => h / 2 - (db / (BAND_RANGE * 2)) * h;
   g.lineWidth = 1;
+  g.strokeStyle = stageColor('--on-surface-var');
   for (const db of [-12, -6, 0, 6, 12]) {
-    g.globalAlpha = db === 0 ? 0.5 : 0.18;
-    g.strokeStyle = cssColor('--on-surface-var');
+    g.globalAlpha = db === 0 ? 0.42 : 0.16;
     g.setLineDash(db === 0 ? [] : [3, 6]);
-    g.beginPath(); g.moveTo(0, Math.round(yOfDb(db)) + 0.5); g.lineTo(w, Math.round(yOfDb(db)) + 0.5); g.stroke();
+    const y = Math.round(yOfDb(db)) + 0.5;
+    g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
   }
   g.setLineDash([]);
-
-  // target response curve, drawn on top of the sliders
-  g.globalAlpha = 1; g.strokeStyle = primary; g.lineWidth = 3.5; g.lineJoin = 'round'; g.lineCap = 'round';
-  g.shadowColor = primary; g.shadowBlur = 12;
-  g.beginPath();
-  for (let i = 0; i < SPEC_N; i++) { const y = yOfDb(respDb[i]); i ? g.lineTo(xOf(specFreq[i]), y) : g.moveTo(xOf(specFreq[i]), y); }
-  g.stroke();
-  g.shadowBlur = 0;
+  g.globalAlpha = 1;
 
   drawFx(now);
 }
