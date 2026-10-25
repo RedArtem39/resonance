@@ -14,7 +14,10 @@ const S = {
 audio.volume = store.get('volume', 0.8);
 const byPath = new Map();
 const ytIdx = new Map(); // youtube id -> local track (files downloaded by us are named <id>.<ext>)
-const albumKey = (t) => `${t.albumArtist}\u0000${t.album}`;
+// Albums that are not real albums (downloads, untagged files) become ONE collection each instead of one per artist.
+// The separator must survive being put into an HTML attribute — a NUL character does not (the parser turns it into U+FFFD, and the click then matched nothing).
+const LOOSE_ALBUMS = new Set(['YouTube', 'Без альбома']);
+const albumKey = (t) => (LOOSE_ALBUMS.has(t.album) ? t.album : t.albumArtist + String.fromCharCode(0x2016) + t.album);
 const fileName = (p) => p.split(/[\\/]/).pop();
 const trackAdded = (t) => {
   byPath.set(t.path, t);
@@ -149,7 +152,7 @@ function renderLibrary(c) {
     c.innerHTML = `<div class="grid">${groups.map(([k, ts]) => `
       <button class="card" data-album="${esc(k)}" data-label="${esc(ts[0].album)}">
         <div class="img" data-path="${esc(ts[0].path)}">${svg('album')}</div>
-        <b>${esc(ts[0].album)}</b><span>${esc(ts[0].albumArtist)}</span></button>`).join('')}</div>`;
+        <b>${esc(ts[0].album)}</b><span>${esc(new Set(ts.map((t) => t.albumArtist)).size > 1 ? 'Разные артисты' : ts[0].albumArtist)} · ${ts.length}</span></button>`).join('')}</div>`;
     $$('.card .img', c).forEach((el) => lazyCovers.observe(el));
   } else if (S.view === 'artists' && !f) {
     const groups = [...groupBy(list, (t) => t.albumArtist)].sort((a, b) => a[0].localeCompare(b[0]));
