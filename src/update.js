@@ -86,7 +86,7 @@ module.exports = function register({ app, ipcMain }) {
     if (want && hash.digest('hex') !== want) { await fs.unlink(file).catch(() => {}); throw new Error('Checksum mismatch — the download was discarded'); }
 
     spawn(file, [], { detached: true, stdio: 'ignore' }).unref();
-    setTimeout(() => app.quit(), 400); // the installer stops/overwrites the running copy anyway; leaving cleanly is nicer
+    // Resonance deliberately keeps running: the installer takes several seconds to open, and it stops this copy itself when you press Update.
     return { ok: true, verified: !!want };
   });
 };

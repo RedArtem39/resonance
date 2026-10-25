@@ -345,10 +345,17 @@ async function checkUpdates(manual) {
 }
 window.api.onUpdProgress((pct) => { const b = $('[data-ver].busy'); if (b) b.textContent = `${Math.round(pct)}%`; });
 async function installVersion(btn) {
-  btn.classList.add('busy'); $('[data-ver]').forEach((x) => (x.disabled = true));
-  btn.textContent = '0%';
-  try { await window.api.updInstall(btn.dataset.ver); toast('Установщик запущен — приложение сейчас закроется', 6000); }
-  catch (err) { toast(`Не получилось: ${String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`, 7000); paintVersions(); }
+  try {
+    btn.classList.add('busy'); $$('[data-ver]').forEach((x) => (x.disabled = true));
+    btn.textContent = '0%';
+    await window.api.updInstall(btn.dataset.ver);
+    // The installer is a self-extracting app and takes several seconds to show its window; Resonance stays open meanwhile and is closed by the installer itself.
+    toast('Скачано и проверено. Установщик запускается — окно появится через несколько секунд.', 9000);
+    btn.textContent = 'Запущено';
+  } catch (err) {
+    toast(`Не получилось: ${String(err && err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`, 7000);
+    paintVersions();
+  }
 }
 
 // ---------------------------------------------------------------- scanning
