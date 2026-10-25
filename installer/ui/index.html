@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'">
+  <title>Resonance Setup</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="drag"></div>
+  <div class="winctl">
+    <button id="wMin" title="Minimize"><svg viewBox="0 0 16 16"><path d="M3.5 8h9"/></svg></button>
+    <button id="wClose" class="close" title="Close"><svg viewBox="0 0 16 16"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>
+  </div>
+
+  <aside class="art"><canvas id="art"></canvas></aside>
+
+  <main class="pages" data-page="welcome" id="pages">
+    <!-- welcome -->
+    <section class="page" id="p-welcome">
+      <p class="eyebrow" data-t="eyebrow"></p>
+      <h1>Resonance</h1>
+      <p class="lead" data-t="tagline"></p>
+      <ul class="points">
+        <li data-t="pt1"></li><li data-t="pt2"></li><li data-t="pt3"></li>
+      </ul>
+      <p class="note" id="existing" hidden></p>
+      <div class="actions">
+        <button class="btn primary" id="install"><span data-t="install" id="installLbl"></span></button>
+        <button class="btn tonal" id="customize" data-t="options"></button>
+      </div>
+      <p class="foot"><span id="ver"></span> · <span data-t="license"></span></p>
+    </section>
+
+    <!-- options -->
+    <section class="page" id="p-options">
+      <p class="eyebrow" data-t="eyebrow"></p>
+      <h2 data-t="optionsTitle"></h2>
+      <div class="field">
+        <label data-t="location"></label>
+        <div class="path">
+          <span id="dir"></span>
+          <button class="btn tonal small" id="browse" data-t="browse"></button>
+        </div>
+      </div>
+      <label class="row"><span data-t="desktop"></span><input type="checkbox" class="switch" id="optDesktop" checked></label>
+      <label class="row"><span data-t="startmenu"></span><input type="checkbox" class="switch" id="optStart" checked></label>
+      <label class="row"><span data-t="launchAfter"></span><input type="checkbox" class="switch" id="optLaunch" checked></label>
+      <button class="link" id="readLicense" data-t="readLicense"></button>
+      <div class="actions">
+        <button class="btn primary" id="install2"><span data-t="install" id="installLbl2"></span></button>
+        <button class="btn tonal" id="back" data-t="back"></button>
+      </div>
+    </section>
+
+    <!-- installing -->
+    <section class="page" id="p-install">
+      <p class="eyebrow" data-t="eyebrow"></p>
+      <h2 data-t="installing"></h2>
+      <div class="big"><span id="pct">0</span><small>%</small></div>
+      <p class="file" id="file"></p>
+    </section>
+
+    <!-- done -->
+    <section class="page" id="p-done">
+      <p class="eyebrow" data-t="eyebrow"></p>
+      <h1 data-t="doneTitle"></h1>
+      <p class="lead" id="doneText"></p>
+      <label class="row"><span data-t="launchNow"></span><input type="checkbox" class="switch" id="launchNow" checked></label>
+      <div class="actions"><button class="btn primary" id="finish" data-t="finish"></button></div>
+    </section>
+
+    <!-- error -->
+    <section class="page" id="p-error">
+      <p class="eyebrow" data-t="eyebrow"></p>
+      <h2 data-t="errTitle"></h2>
+      <p class="lead" id="errText"></p>
+      <div class="actions">
+        <button class="btn primary" id="retry" data-t="retry"></button>
+        <button class="btn tonal" id="errClose" data-t="close"></button>
+      </div>
+    </section>
+
+    <div class="license" id="license">
+      <div class="lic-head"><b data-t="licenseTitle"></b><button class="btn tonal small" id="licClose" data-t="close"></button></div>
+      <pre id="licText"></pre>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

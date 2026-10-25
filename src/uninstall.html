@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'">
+  <title>Uninstall Resonance</title>
+  <style>
+    :root { --ink: #171413; --ink-3: #2c2724; --ink-4: #38322e; --cream: #f7ecdc; --dim: #bcae9d; --verm: #e4572e; --verm-deep: #c4421d;
+      --spring: cubic-bezier(.34, 1.56, .64, 1); font-family: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif; }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { height: 100%; }
+    body { display: grid; grid-template-columns: 190px 1fr; background: var(--ink); color: var(--cream); overflow: hidden; user-select: none; }
+    button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+    button:focus-visible, input:focus-visible { outline: 3px solid var(--cream); outline-offset: 2px; }
+    .drag { position: fixed; inset: 0 60px auto 0; height: 34px; -webkit-app-region: drag; }
+    .x { position: fixed; top: 0; right: 0; width: 46px; height: 34px; display: grid; place-items: center; color: var(--dim); z-index: 3; }
+    .x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; }
+    .x:hover { background: var(--verm-deep); color: #fff; }
+    aside { background: var(--verm); display: grid; place-items: center; }
+    aside img { width: 132px; height: 132px; transition: transform .6s var(--spring); }
+    body[data-s='done'] aside img { transform: scale(.8) rotate(-8deg); }
+    main { position: relative; }
+    .page { position: absolute; inset: 0; padding: 56px 44px 34px 40px; display: flex; flex-direction: column; opacity: 0; transform: translateX(24px); pointer-events: none; transition: opacity .3s, transform .5s var(--spring); }
+    body[data-s='ask'] #ask, body[data-s='busy'] #busy, body[data-s='done'] #done { opacity: 1; transform: none; pointer-events: auto; }
+    .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--verm); }
+    h2 { font-size: 34px; line-height: 1.05; font-weight: 800; letter-spacing: -.03em; margin: 10px 0 14px; }
+    p { font-size: 15px; line-height: 1.5; color: var(--dim); }
+    .row { margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 14.5px; font-weight: 600; cursor: pointer; }
+    .row small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--dim); font-weight: 500; }
+    .switch { -webkit-appearance: none; appearance: none; flex: none; width: 52px; height: 32px; border-radius: 16px; background: var(--ink-3); border: 2px solid #6a5f55; position: relative; cursor: pointer; transition: background .25s, border-color .25s; }
+    .switch::before { content: ''; position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 50%; background: #8d8176; transition: all .4s var(--spring); }
+    .switch:checked { background: var(--verm); border-color: var(--verm); }
+    .switch:checked::before { left: 24px; top: 2px; width: 24px; height: 24px; background: var(--ink); }
+    .actions { margin-top: auto; display: flex; gap: 10px; }
+    .btn { height: 52px; padding: 0 28px; border-radius: 26px; font-size: 15.5px; font-weight: 750; transition: border-radius .4s var(--spring), transform .35s var(--spring), background .2s; }
+    .btn:hover { border-radius: 16px; } .btn:active { transform: scale(.95); }
+    .btn.primary { background: var(--verm); color: var(--ink); } .btn.primary:hover { background: #ee6338; }
+    .btn.tonal { background: var(--ink-3); } .btn.tonal:hover { background: var(--ink-4); }
+  </style>
+</head>
+<body data-s="ask">
+  <div class="drag"></div>
+  <button class="x" id="x" title="Close"><svg viewBox="0 0 16 16"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button>
+  <aside><img src="../build/icon.png" alt=""></aside>
+  <main>
+    <section class="page" id="ask">
+      <p class="eyebrow" data-t="eyebrow"></p>
+      <h2 data-t="title"></h2>
+      <p data-t="text"></p>
+      <label class="row"><span><span data-t="purge"></span><small data-t="purgeNote"></small></span><input type="checkbox" class="switch" id="purge"></label>
+      <div class="actions"><button class="btn primary" id="go" data-t="remove"></button><button class="btn tonal" id="cancel" data-t="cancel"></button></div>
+    </section>
+    <section class="page" id="busy"><p class="eyebrow" data-t="eyebrow"></p><h2 data-t="removing"></h2></section>
+    <section class="page" id="done">
+      <p class="eyebrow" data-t="eyebrow"></p>
+      <h2 data-t="doneTitle"></h2>
+      <p data-t="doneText"></p>
+      <div class="actions"><button class="btn primary" id="close" data-t="close"></button></div>
+    </section>
+  </main>
+  <script>
+    const S = {
+      en: { eyebrow: 'Uninstall', title: 'Remove Resonance?', text: 'The app and its shortcuts will be removed. Music you downloaded stays in your Music folder.',
+        purge: 'Also delete settings and cache', purgeNote: 'Favourites, equalizer, window state', remove: 'Remove', cancel: 'Cancel',
+        removing: 'Removing…', doneTitle: 'Removed', doneText: 'Resonance is gone. Thanks for listening.', close: 'Close' },
+      ru: { eyebrow: 'Удаление', title: 'Удалить Resonance?', text: 'Приложение и его ярлыки будут удалены. Скачанная музыка останется в папке «Музыка».',
+        purge: 'Удалить также настройки и кэш', purgeNote: 'Избранное, эквалайзер, состояние окна', remove: 'Удалить', cancel: 'Отмена',
+        removing: 'Удаление…', doneTitle: 'Удалено', doneText: 'Resonance удалён. Спасибо, что слушали.', close: 'Закрыть' },
+    };
+    const L = /^(ru|uk|be)/i.test(navigator.language) ? S.ru : S.en;
+    document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = L[el.dataset.t]; });
+    const set = (s) => { document.body.dataset.s = s; };
+    document.getElementById('go').onclick = async () => { set('busy'); await un.run(document.getElementById('purge').checked); await new Promise((r) => setTimeout(r, 700)); set('done'); };
+    for (const id of ['cancel', 'close', 'x']) document.getElementById(id).onclick = () => un.close();
+  </script>
+</body>
+</html>

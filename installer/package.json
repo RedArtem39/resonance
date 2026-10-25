@@ -1,0 +1,46 @@
+{
+  "name": "resonance-setup",
+  "productName": "Resonance",
+  "version": "0.3.0",
+  "description": "Resonance installer",
+  "main": "main.js",
+  "author": "RedArtem39",
+  "license": "GPL-3.0-or-later",
+  "build": {
+    "appId": "io.github.redartem39.resonance.setup",
+    "productName": "Resonance",
+    "copyright": "Copyright © 2026 RedArtem39. Licensed under GPL-3.0-or-later.",
+    "electronVersion": "45.0.0",
+    "directories": {
+      "output": "../dist-installer",
+      "buildResources": "../build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "ui/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "payload",
+        "to": "payload"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "../build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "Resonance-Setup-${version}.exe",
+      "requestExecutionLevel": "user"
+    }
+  }
+}

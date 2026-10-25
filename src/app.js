@@ -6,7 +6,7 @@ const S = {
   queue: [], i: -1, shuffle: false, repeat: 0, // repeat: 0 off, 1 all, 2 one
   folders: store.get('folders', []),
   favs: new Set(store.get('favs', [])),
-  set: { yt: true, autoplay: true, ...store.get('settings', {}) },
+  set: { yt: true, autoplay: true, updates: true, ...store.get('settings', {}) },
   yt: { q: '', status: 'idle', items: [] },
   dl: new Map(), // youtube id -> { state: 'dl' | 'done' | 'err', pct }
   dlDir: '',
@@ -266,11 +266,20 @@ function renderSettings(c) {
       <p class="hint">Скачивание с YouTube может противоречить условиям сервиса и авторским правам. Используй для контента, на который у тебя есть права.</p>
     </div>
     <div class="panel">
+      <h4>Обновления</h4>
+      <div class="frow"><span><b id="appVer">Resonance</b><small id="updStatus">Нажми «Проверить», чтобы посмотреть версии на GitHub.</small></span><button class="mini" id="updCheck">${svg('refresh')}<span>Проверить</span></button></div>
+      ${switchRow('setUpdAuto', 'Проверять при запуске', 'Только запрос к GitHub — ничего не ставится без твоего нажатия.', S.set.updates)}
+      <div id="verList"></div>
+      <p class="hint">Версии берутся из GitHub Releases. Установка проверяет контрольную сумму файла. Откат ставит выбранную версию поверх текущей, библиотека и настройки сохраняются.</p>
+    </div>
+    <div class="panel">
       <h4>Оформление</h4>
       <div class="seg" id="setTheme"><button data-t="dark">Тёмная</button><button data-t="light">Светлая</button></div>
     </div>
   </div>`;
   $$('#setTheme button', c).forEach((b) => b.classList.toggle('on', b.dataset.t === root.dataset.theme));
+  window.api.appInfo().then((i) => { const el = $('#appVer'); if (el) el.textContent = `Resonance ${i.version}${i.installed ? '' : ' (режим разработки)'}`; });
+  if (S.upd) paintVersions();
   // yt-dlp is a one-file exe that takes a moment to start, so the version fills in after the panel is already up
   window.api.ytStatus().then((st) => {
     const el = $('#ytVer');
@@ -280,6 +289,37 @@ function renderSettings(c) {
   });
 }
 const saveSet = () => store.set('settings', S.set);
+
+// ---------------------------------------------------------------- updates / rollback (GitHub Releases, see src/update.js)
+const cmpVer = (x, y) => { const a = String(x).split('.').map(Number), b = String(y).split('.').map(Number); for (let i = 0; i < 3; i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) - (b[i] || 0); return 0; };
+function paintVersions() {
+  const u = S.upd, st = $('#updStatus'), list = $('#verList');
+  if (!st || !list) return;
+  if (!u.ok) { st.textContent = `Не удалось проверить: ${u.error}`; list.innerHTML = ''; return; }
+  st.textContent = !u.releases.length ? 'На GitHub пока нет релизов.' : u.hasUpdate ? `Доступна версия ${u.latest} (у тебя ${u.current}).` : `Установлена последняя версия (${u.current}).`;
+  list.innerHTML = u.releases.map((r) => {
+    const c = cmpVer(r.version, u.current);
+    const label = c > 0 ? 'Обновить' : c < 0 ? 'Откатить' : 'Переустановить';
+    const firstLine = r.notes.split(/\r?\n/).find((l) => l.trim()) || '';
+    const note = firstLine.replace(/^#+\s*/, '').slice(0, 90);
+    return `<div class="frow"><span><b>v${esc(r.version)}${c === 0 ? ' · сейчас' : ''}${r.prerelease ? ' · пре-релиз' : ''}</b><small>${new Date(r.date).toLocaleDateString()}${note ? ' · ' + esc(note) : ''}</small></span><button class="mini" data-ver="${esc(r.version)}"${u.installed ? '' : ' disabled title="Работает только в установленном приложении"'}>${label}</button></div>`;
+  }).join('');
+}
+async function checkUpdates(manual) {
+  const btn = $('#updCheck');
+  if (btn) btn.disabled = true;
+  S.upd = await window.api.updCheck();
+  if (btn) btn.disabled = false;
+  if (manual || S.view === 'settings') paintVersions();
+  if (!manual && S.upd.ok && S.upd.installed && S.upd.hasUpdate) toast(`Доступно обновление ${S.upd.latest} — Настройки → Обновления`, 7000);
+}
+window.api.onUpdProgress((pct) => { const b = $('[data-ver].busy'); if (b) b.textContent = `${Math.round(pct)}%`; });
+async function installVersion(btn) {
+  btn.classList.add('busy'); $('[data-ver]').forEach((x) => (x.disabled = true));
+  btn.textContent = '0%';
+  try { await window.api.updInstall(btn.dataset.ver); toast('Установщик запущен — приложение сейчас закроется', 6000); }
+  catch (err) { toast(`Не получилось: ${String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`, 7000); paintVersions(); }
+}
 
 // ---------------------------------------------------------------- scanning
 let renderTimer = 0;
@@ -579,12 +619,16 @@ async function handleContent(e) {
     try { const v = await window.api.ytUpdate(); $('#ytVer').textContent = `Версия ${v}`; toast('yt-dlp обновлён'); } catch (err) { toast(`Не удалось обновить: ${err.message || err}`, 6000); }
     btn.disabled = false; return;
   }
+  if (t.closest('#updCheck')) return checkUpdates(true);
+  const vb = t.closest('[data-ver]');
+  if (vb && !vb.disabled) return installVersion(vb);
   const th = t.closest('#setTheme button');
   if (th) { applyTheme(th.dataset.t); $$('#setTheme button').forEach((b) => b.classList.toggle('on', b === th)); }
 }
 $('#content').addEventListener('change', (e) => {
   if (e.target.id === 'setYt') { S.set.yt = e.target.checked; saveSet(); if (!S.set.yt) { ytSeq++; S.yt = { q: '', status: 'idle', items: [] }; } toast(S.set.yt ? 'Поиск на YouTube включён' : 'Только локальный поиск', 2000); }
   if (e.target.id === 'setAuto') { S.set.autoplay = e.target.checked; saveSet(); }
+  if (e.target.id === 'setUpdAuto') { S.set.updates = e.target.checked; saveSet(); }
 });
 $('#chips').addEventListener('click', (e) => { if (e.target.closest('#clearFilter')) { S.filter = null; render(); } });
 $('#queue').addEventListener('click', (e) => {
@@ -626,4 +670,5 @@ window.api.winIsMax().then(paintMax);
   renderQueue();
   await rescan();
   $('#q').focus();
+  if (S.set.updates) setTimeout(() => checkUpdates(false), 4000); // quiet: only toasts when a newer release exists
 })();

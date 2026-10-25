@@ -230,7 +230,8 @@ body[data-tab='now'] .p-now, body[data-tab='lyrics'] .p-lyrics, body[data-tab='q
 .mini:hover { border-radius: 18px; }
 .mini:active { transform: scale(.92); }
 .mini.on { background: var(--secondary-container); color: var(--on-secondary-container); }
-.mini:disabled { opacity: .5; }
+.mini:disabled { opacity: .5; pointer-events: none; }
+.mini.busy { background: var(--primary); color: var(--on-primary); opacity: 1; min-width: 64px; justify-content: center; }
 input[type=range] { -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 28px; background: none; cursor: pointer; --p: 80%; }
 input[type=range]::-webkit-slider-runnable-track { height: 16px; border-radius: 8px; background: linear-gradient(to right, var(--primary) var(--p), var(--surface-highest) var(--p)); }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 6px; height: 28px; margin-top: -6px; border-radius: 3px; background: var(--primary); box-shadow: 0 0 0 4px var(--surface-mid); }

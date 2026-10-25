@@ -3,13 +3,14 @@
   "productName": "Resonance",
   "version": "0.3.0",
   "description": "Offline music player in Material 3 Expressive style, with YouTube search, synced lyrics and a 10-band equalizer",
-  "main": "src/main.js",
+  "main": "src/boot.js",
   "author": "RedArtem39",
   "license": "GPL-3.0-or-later",
   "scripts": {
     "start": "electron .",
     "icons": "electron tools/make-icons.js",
-    "dist": "electron-builder --win nsis"
+    "installer": "node installer/build.js",
+    "dist:nsis": "electron-builder --win nsis"
   },
   "dependencies": {
     "music-metadata": "^12.3.0",

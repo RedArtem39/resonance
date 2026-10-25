@@ -23,6 +23,8 @@ const COVER_EXTS = ['.jpg', '.jpeg', '.png', '.webp'];
 const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
 const UA = 'Resonance/0.2 (offline music player)';
 
+app.setAppUserModelId('io.github.redartem39.resonance'); // same id as the installer's shortcuts, so the taskbar groups them
+
 let mmPromise;
 const mm = () => (mmPromise ??= import('music-metadata'));
 const mediaUrl = (f) => `rmedia://f/${encodeURIComponent(f)}`;
@@ -277,6 +279,8 @@ ipcMain.handle('yt:download', async (e, { id, title, author }) => {
   await fs.writeFile(path.join(dir, id + '.meta.json'), JSON.stringify({ ...splitMeta(title, author), ytTitle: title, ytAuthor: author, album: 'YouTube', source: `https://www.youtube.com/watch?v=${id}` }));
   return readTrack(full);
 });
+
+require('./update')({ app, ipcMain });
 
 app.whenReady().then(() => {
   // The built-in file handler ignores Range (answers 200), which makes tracks unseekable — so serve 206s ourselves.

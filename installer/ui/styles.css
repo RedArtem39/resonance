@@ -1,0 +1,92 @@
+/* Resonance Setup — same visual language as the app icon: vermilion, cream, ink. Flat colours, big soft shapes, spring motion. */
+
+:root {
+  --ink: #171413;
+  --ink-2: #211d1b;
+  --ink-3: #2c2724;
+  --ink-4: #38322e;
+  --cream: #f7ecdc;
+  --cream-dim: #bcae9d;
+  --verm: #e4572e;
+  --verm-deep: #c4421d;
+  --spring: cubic-bezier(.34, 1.56, .64, 1);
+  --smooth: cubic-bezier(.2, 0, 0, 1);
+  font-family: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; }
+body { display: grid; grid-template-columns: 340px 1fr; background: var(--ink); color: var(--cream); overflow: hidden; user-select: none; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--cream); outline-offset: 2px; }
+
+.drag { position: fixed; inset: 0 100px auto 0; height: 36px; -webkit-app-region: drag; z-index: 5; }
+.winctl { position: fixed; top: 0; right: 0; display: flex; z-index: 6; }
+.winctl button { width: 46px; height: 34px; display: grid; place-items: center; color: var(--cream-dim); transition: background .15s, color .15s; }
+.winctl svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linecap: round; }
+.winctl button:hover { background: rgb(247 236 220 / .12); color: var(--cream); }
+.winctl .close:hover { background: var(--verm-deep); color: #fff; }
+.art + .pages .license { top: 0; }
+
+/* ---------- art panel ---------- */
+.art { background: var(--verm); position: relative; overflow: hidden; }
+.art canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* ---------- pages ---------- */
+.pages { position: relative; overflow: hidden; }
+.page { position: absolute; inset: 0; padding: 64px 56px 40px 52px; display: flex; flex-direction: column; opacity: 0; transform: translateX(28px); pointer-events: none; transition: opacity .35s var(--smooth), transform .55s var(--spring); }
+[data-page='welcome'] #p-welcome, [data-page='options'] #p-options, [data-page='install'] #p-install,
+[data-page='done'] #p-done, [data-page='error'] #p-error { opacity: 1; transform: none; pointer-events: auto; }
+
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--verm); }
+h1 { font-size: 68px; line-height: 1; font-weight: 800; letter-spacing: -.035em; margin-top: 12px; }
+h2 { font-size: 40px; line-height: 1.05; font-weight: 800; letter-spacing: -.03em; margin-top: 12px; margin-bottom: 22px; }
+.lead { margin-top: 18px; font-size: 17px; line-height: 1.5; color: var(--cream-dim); max-width: 400px; }
+.points { margin: 24px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.points li { position: relative; padding-left: 26px; font-size: 14.5px; font-weight: 600; color: var(--cream); }
+.points li::before { content: ''; position: absolute; left: 0; top: 5px; width: 12px; height: 12px; border-radius: 4px 50% 4px 50%; background: var(--verm); }
+.note { margin-top: 18px; padding: 12px 16px; border-radius: 14px; background: var(--ink-3); font-size: 13.5px; font-weight: 600; color: var(--cream-dim); }
+.actions { margin-top: auto; display: flex; gap: 10px; align-items: center; }
+.foot { margin-top: 18px; font-size: 12.5px; font-weight: 600; color: var(--cream-dim); opacity: .75; }
+
+/* ---------- buttons: shape morph on hover/press, like the app ---------- */
+.btn { height: 56px; padding: 0 30px; border-radius: 28px; font-size: 16px; font-weight: 750; display: inline-flex; align-items: center; justify-content: center; transition: border-radius .4s var(--spring), transform .35s var(--spring), background .2s; }
+.btn:hover { border-radius: 18px; }
+.btn:active { transform: scale(.95); border-radius: 12px; }
+.btn.primary { background: var(--verm); color: var(--ink); }
+.btn.primary:hover { background: #ee6338; }
+.btn.tonal { background: var(--ink-3); color: var(--cream); }
+.btn.tonal:hover { background: var(--ink-4); }
+.btn.small { height: 40px; padding: 0 18px; font-size: 14px; border-radius: 20px; }
+.btn:disabled { opacity: .5; pointer-events: none; }
+.link { align-self: flex-start; margin-top: 10px; margin-bottom: 18px; padding: 6px 2px; font-size: 14px; font-weight: 700; color: var(--verm); border-radius: 6px; }
+.link:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* ---------- options ---------- */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--cream-dim); margin-bottom: 8px; }
+.path { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 18px; border-radius: 22px; background: var(--ink-3); }
+.path span { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; direction: rtl; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 11px 4px; font-size: 15.5px; font-weight: 600; border-top: 1px solid var(--ink-3); cursor: pointer; }
+.field + .row { border-top: 0; }
+.switch { -webkit-appearance: none; appearance: none; flex: none; width: 52px; height: 32px; border-radius: 16px; background: var(--ink-3); border: 2px solid #6a5f55; position: relative; cursor: pointer; transition: background .25s, border-color .25s; }
+.switch::before { content: ''; position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 50%; background: #8d8176; transition: all .4s var(--spring); }
+.switch:checked { background: var(--verm); border-color: var(--verm); }
+.switch:checked::before { left: 24px; top: 2px; width: 24px; height: 24px; background: var(--ink); }
+.switch:active::before { width: 28px; height: 28px; top: 0; }
+.switch:checked:active::before { left: 20px; }
+
+/* ---------- installing ---------- */
+.big { margin-top: 6px; font-size: 128px; line-height: 1; font-weight: 800; letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
+.big small { font-size: 44px; font-weight: 700; margin-left: 6px; color: var(--cream-dim); letter-spacing: 0; }
+.file { margin-top: 18px; font-family: 'Cascadia Mono', Consolas, monospace; font-size: 12.5px; color: var(--cream-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- license overlay ---------- */
+.license { position: absolute; inset: 0; background: var(--ink); padding: 52px 40px 28px; display: flex; flex-direction: column; gap: 14px; opacity: 0; transform: translateY(24px); pointer-events: none; transition: opacity .3s var(--smooth), transform .5s var(--spring); z-index: 4; }
+.license.open { opacity: 1; transform: none; pointer-events: auto; }
+.lic-head { display: flex; align-items: center; justify-content: space-between; font-size: 18px; }
+.license pre { flex: 1; overflow-y: auto; padding: 18px 20px; border-radius: 22px; background: var(--ink-2); font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11.5px; line-height: 1.55; white-space: pre-wrap; user-select: text; color: var(--cream-dim); }
+.license pre::-webkit-scrollbar { width: 12px; }
+.license pre::-webkit-scrollbar-thumb { background: var(--ink-4); border-radius: 6px; border: 3px solid var(--ink-2); }
+
+@media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
