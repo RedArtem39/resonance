@@ -35,7 +35,6 @@
 - 10-band equalizer (31 Hz – 16 kHz, ±12 dB) with a live frequency-response curve and 8 presets.
 - Preamp, stereo balance (with L/R readouts), mono, left/right swap, dynamic range (off / balanced / night: compressor plus a brick-wall limiter) and a channel test (left, right, both — through the whole chain, so it also shows what Balance/Swap/Mono do).
 - The equalizer view has a lightning effect: when you apply a preset or release a slider, a crackling bolt runs through the handles and every band it touches pulses. It can be turned off in *Settings*.
-- UI sound effects (clicks, switches, slider ticks, panel swooshes, a chime when a download finishes). They are synthesized live with Web Audio — no audio files — and can be turned off or turned down in *Settings*.
 - Built on the Web Audio API, so it works on every track, local or downloaded.
 
 **Lyrics**
@@ -106,7 +105,8 @@ src/update.js      Update check / rollback via GitHub Releases
 src/uninstall.*    Uninstaller (window + logic)
 src/preload.js     Safe bridge between main and renderer
 src/util.js        Helpers and icon set
-src/eq.js          Web Audio graph (equalizer, balance, dynamics) and the "Sound" view
+src/eq.js          Web Audio graph: equalizer, balance, mono/swap, dynamics + limiter, channel test
+src/eqview.js      The "Sound" view: glass-tube equalizer, lightning effect, audio panel
 src/viz.js         Visualizer
 src/lyrics.js      LRC parsing and the word-by-word lyrics view
 src/app.js         Library, search, playback, settings, UI wiring
@@ -137,7 +137,7 @@ What that means for you:
 
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense), [yt-search](https://github.com/talmobi/yt-search) (MIT), [music-metadata](https://github.com/Borewit/music-metadata) (MIT), [Electron](https://www.electronjs.org) (MIT), [electron-builder](https://www.electron.build) (MIT; used only as a packager).
 - Lyrics: [LRCLIB](https://lrclib.net).
-- The equalizer's band layout and presets, the audio panel (balance / mono / swap / dynamic range / channel test), and the ideas of the lightning effect and UI sounds were inspired by the media widget of [ilyamiro/serpantinum](https://github.com/ilyamiro/serpantinum) (AGPL-3.0). No code or audio assets were copied: everything here is implemented from scratch.
+- The equalizer's band layout and presets, the audio panel (balance / mono / swap / dynamic range / channel test), and the idea of the lightning effect were inspired by the media widget of [ilyamiro/serpantinum](https://github.com/ilyamiro/serpantinum) (AGPL-3.0). No code or assets were copied: everything here is implemented from scratch.
 - Design language: [Material 3 Expressive](https://m3.material.io).
 
 ## License

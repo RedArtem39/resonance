@@ -115,11 +115,11 @@ function renderEq(c) {
     const end = () => { if (el.classList.contains('drag')) { el.classList.remove('drag'); if (moved) eqZap(); } };
     track.addEventListener('pointerup', end); track.addEventListener('pointercancel', end);
     track.addEventListener('dblclick', () => { eq.bands[i] = 0; eq.preset = 'Свой'; commit(); eqZap(); });
-    el.addEventListener('wheel', (e) => { e.preventDefault(); eq.bands[i] = clamp(eq.bands[i] + (e.deltaY < 0 ? 1 : -1), -BAND_RANGE, BAND_RANGE); eq.preset = 'Свой'; commit(); sfx.play('tick'); }, { passive: false });
+    el.addEventListener('wheel', (e) => { e.preventDefault(); eq.bands[i] = clamp(eq.bands[i] + (e.deltaY < 0 ? 1 : -1), -BAND_RANGE, BAND_RANGE); eq.preset = 'Свой'; commit(); }, { passive: false });
   });
   c.addEventListener('click', (e) => {
     const p = e.target.closest('.pchip');
-    if (p && EQ_PRESETS[p.dataset.p]) { eq.bands = [...EQ_PRESETS[p.dataset.p]]; eq.preset = p.dataset.p; commit(); eqZap(); if (!eqFx.enabled) sfx.play('click'); }
+    if (p && EQ_PRESETS[p.dataset.p]) { eq.bands = [...EQ_PRESETS[p.dataset.p]]; eq.preset = p.dataset.p; commit(); eqZap(); }
     const d = e.target.closest('#eqDyn button');
     if (d) { eq.dyn = d.dataset.d; commit(); }
   });
@@ -129,7 +129,7 @@ function renderEq(c) {
   $('#eqMono', c).onchange = (e) => { eq.mono = e.target.checked; if (eq.mono) eq.swap = false; commit(); };
   $('#eqSwap', c).onchange = (e) => { eq.swap = e.target.checked; if (eq.swap) eq.mono = false; commit(); };
   $('#eqTest', c).onclick = () => eqTest((s) => $$('#eqTest .ch', c).forEach((n) => n.classList.toggle('on', n.dataset.s === s || s === 'C')));
-  $('#eqReset', c).onclick = () => { resetAudio(); paintAll(); sfx.play('swooshShort'); };
+  $('#eqReset', c).onclick = () => { resetAudio(); paintAll(); };
   paintAll();
   setTimeout(eqZap, 520); // a first bolt as the bands finish sliding in
 }
@@ -147,7 +147,6 @@ function eqZap() {
   fx.forks = Array.from({ length: 9 }, () => Array.from({ length: 2 }, () => ({
     at: 0.2 + Math.random() * 0.6, ang: (Math.random() < 0.5 ? -1 : 1) * (0.7 + Math.random() * 0.8), len: 26 + Math.random() * 40, on: Math.random() < 0.65,
   })));
-  sfx.play('zap');
 }
 
 function drawFx(now) {
@@ -259,10 +258,30 @@ const specFreq = Array.from({ length: SPEC_N }, (_, i) => 20 * 1000 ** (i / (SPE
 const respFreq = Float32Array.from(specFreq);
 const respMag = new Float32Array(SPEC_N), respPh = new Float32Array(SPEC_N), respDb = new Float32Array(SPEC_N);
 
+// Each band's orb and tube breathe with the actual (post-EQ) energy around its frequency: --lvl is read by the CSS glow.
+const eqBins = new Uint8Array(analyser.frequencyBinCount);
+const bandLvl = new Float32Array(10);
+function updateBandLevels() {
+  const els = $$('.band');
+  if (els.length !== 10) return;
+  analyser.getByteFrequencyData(eqBins);
+  const hz = AC.sampleRate / analyser.fftSize;
+  for (let i = 0; i < 10; i++) {
+    const f = EQ_FREQS[i];
+    const lo = Math.max(1, Math.floor(f / 1.41 / hz)), hi = Math.max(lo + 1, Math.ceil((f * 1.41) / hz));
+    let sum = 0;
+    for (let k = lo; k < hi; k++) sum += eqBins[k];
+    const v = Math.min(1, (sum / (hi - lo) / 255) ** 1.6 * (1 + i * 0.12) * 1.5);
+    bandLvl[i] += (v - bandLvl[i]) * (v > bandLvl[i] ? 0.5 : 0.1);
+    els[i].style.setProperty('--lvl', bandLvl[i].toFixed(3));
+  }
+}
+
 function drawEqViz() {
   const cv = $('.eqcv');
   if (!cv) return;
   const now = performance.now();
+  updateBandLevels();
   const dpr = devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
   if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
   const g = cv.getContext('2d');
