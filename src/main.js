@@ -228,9 +228,32 @@ ipcMain.handle('cover', async (_, f) => {
 });
 
 // ------------------------------------------------------------------ lyrics (LRCLIB, cached on disk)
+const lyricsDir = () => path.join(app.getPath('userData'), 'lyrics');
+const lyricsFile = (q) => path.join(lyricsDir(), crypto.createHash('sha1').update(`${q.artist}|${q.title}|${Math.round(q.duration)}`).digest('hex') + '.json');
+
+// Manual lookup: free-text search, returns candidates (with their lyrics) for the user to pick from.
+ipcMain.handle('lyrics:search', async (_, text) => {
+  try {
+    const r = await fetch(`https://lrclib.net/api/search?q=${encodeURIComponent(String(text).slice(0, 200))}`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(10000) });
+    if (!r.ok) return { error: r.status === 503 ? 'Сервер LRCLIB перегружен, попробуй ещё раз через минуту' : `LRCLIB ответил ${r.status}` };
+    return (await r.json())
+      .filter((x) => x.syncedLyrics || x.plainLyrics)
+      .slice(0, 15)
+      .map((x) => ({ artist: x.artistName, title: x.trackName, album: x.albumName, duration: x.duration, synced: x.syncedLyrics || null, plain: x.plainLyrics || null }));
+  } catch (err) { return { error: String(err.message || err) }; }
+});
+
+// Remember the user's choice for this exact track (artist|title|duration). `scale` stretches the timestamps (sped-up / slowed versions).
+ipcMain.handle('lyrics:save', async (_, { track, synced, plain, scale }) => {
+  const out = { synced: synced || null, plain: plain || null, scale: Number.isFinite(scale) && scale > 0.2 && scale < 5 ? scale : 1 };
+  await fs.mkdir(lyricsDir(), { recursive: true });
+  await fs.writeFile(lyricsFile(track), JSON.stringify(out));
+  return out;
+});
+
 ipcMain.handle('lyrics', async (_, q) => {
-  const dir = path.join(app.getPath('userData'), 'lyrics');
-  const file = path.join(dir, crypto.createHash('sha1').update(`${q.artist}|${q.title}|${Math.round(q.duration)}`).digest('hex') + '.json');
+  const dir = lyricsDir();
+  const file = lyricsFile(q);
   try { return JSON.parse(await fs.readFile(file, 'utf8')); } catch { /* not cached */ }
 
   const get = async (url) => {

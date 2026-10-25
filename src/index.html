@@ -57,7 +57,16 @@
           <div class="cover" id="cover"><img id="coverImg" alt=""><i data-i="music" class="ph"></i></div>
         </div>
       </div>
-      <div class="pane p-lyrics"><div class="lyrics" id="lyrics"></div></div>
+      <div class="pane p-lyrics">
+        <div class="lyrics" id="lyrics"></div>
+        <button class="mini lyswap" id="lySwap" title="Подобрать другой текст" hidden>Другой текст</button>
+        <div class="lypick" id="lyPick">
+          <div class="lyhead"><b>Подобрать текст</b><button class="mini" id="lyClose">Закрыть</button></div>
+          <div class="lysearch"><input id="lyQ" type="text" placeholder="Название песни" autocomplete="off" spellcheck="false"><button class="mini" id="lyGo">Искать</button></div>
+          <label class="lyscale"><input type="checkbox" class="switch" id="lyScale" checked><span>Подогнать тайминги под длину моего трека<small>Для sped up и замедленных версий. У ремикса с другой структурой лучше выключить.</small></span></label>
+          <div class="lylist" id="lyList"></div>
+        </div>
+      </div>
       <div class="pane p-queue"><div class="queue" id="queue"></div></div>
     </div>
 

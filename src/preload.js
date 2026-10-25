@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('api', {
   scan: (roots) => ipcRenderer.invoke('scan', roots),
   cover: (file) => ipcRenderer.invoke('cover', file),
   lyrics: (q) => ipcRenderer.invoke('lyrics', q),
+  lyricsSearch: (text) => ipcRenderer.invoke('lyrics:search', text),
+  lyricsSave: (v) => ipcRenderer.invoke('lyrics:save', v),
   ytSearch: (q) => ipcRenderer.invoke('yt:search', q),
   ytDownload: (v) => ipcRenderer.invoke('yt:download', v),
   ytStatus: () => ipcRenderer.invoke('yt:status'),

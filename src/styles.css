@@ -383,3 +383,26 @@ body.bar-on .bar { transform: none; pointer-events: auto; }
 .wbtn:hover { background: color-mix(in oklch, var(--on-surface) 12%, transparent); color: var(--on-surface); }
 .wbtn.close { border-top-right-radius: 8px; }
 .wbtn.close:hover { background: oklch(52% .2 25); color: #fff; }
+
+/* ---------- lyrics picker (manual lookup for remixes / sped-up versions) ---------- */
+.lyswap { position: absolute; top: 0; right: 0; z-index: 2; background: color-mix(in oklch, var(--surface-highest) 85%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.lyswap[hidden] { display: none; }
+.btn-sm { height: 40px; padding: 0 20px; border-radius: 20px; background: var(--primary); color: var(--on-primary); font-weight: 650; font-size: 14px; transition: border-radius .35s var(--spring), transform .35s var(--spring); }
+.btn-sm:hover { border-radius: 14px; }
+.btn-sm:active { transform: scale(.94); }
+.lypick { position: absolute; inset: 0; z-index: 4; background: var(--surface-mid); display: flex; flex-direction: column; gap: 10px; opacity: 0; transform: translateY(16px); pointer-events: none; transition: opacity .3s var(--smooth), transform .45s var(--spring); }
+.lypick.open { opacity: 1; transform: none; pointer-events: auto; }
+.lyhead { display: flex; align-items: center; justify-content: space-between; font-size: 17px; }
+.lysearch { display: flex; gap: 8px; }
+.lysearch input { flex: 1; min-width: 0; height: 44px; padding: 0 18px; border-radius: 22px; border: 0; outline: 0; background: var(--surface-high); font-size: 14.5px; user-select: text; }
+.lysearch input:focus { background: var(--surface-highest); }
+.lysearch .mini { height: 44px; border-radius: 22px; }
+.lyscale { display: flex; align-items: center; gap: 12px; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.lyscale small { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--on-surface-var); line-height: 1.3; }
+.lylist { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; scrollbar-width: thin; }
+.cand { display: block; text-align: left; padding: 10px 16px; border-radius: 8px; background: var(--surface-high); flex: none; transition: background .2s, border-radius .4s var(--spring); }
+.cand:first-child { border-radius: 20px 20px 8px 8px; } .cand:last-child { border-radius: 8px 8px 20px 20px; }
+.cand:hover { background: var(--primary-container); color: var(--on-primary-container); border-radius: 18px; }
+.cand b { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cand span { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--on-surface-var); }
+.cand:hover span { color: inherit; opacity: .8; }

@@ -60,19 +60,70 @@ function buildLines(list, synced) {
 
 async function loadLyrics(t) {
   const token = ++Lyr.token;
+  Lyr.track = t || null;
+  $('#lySwap').hidden = !t;
   if (!t) return lyState('music', 'Ничего не играет');
   lyBox.scrollTop = 0;
   lyBox.innerHTML = '<div class="lystate"><div class="lyload"><i></i><i></i><i></i></div><p>Ищу текст…</p></div>';
   Lyr.lines = []; Lyr.idx = -1;
-  const res = await window.api.lyrics({ artist: t.artist, title: t.title, album: t.album, duration: t.duration || audio.duration || 0 });
+  Lyr.q = { artist: t.artist, title: t.title, album: t.album, duration: t.duration || audio.duration || 0 }; // also the cache key for a manual pick
+  const res = await window.api.lyrics(Lyr.q);
   if (token !== Lyr.token) return;
   if (res?.synced) {
     const list = parseLrc(res.synced);
-    if (list.length) return buildLines(list, true);
+    const k = res.scale || 1; // a manual pick can be stretched to fit a sped-up / slowed version
+    if (list.length) return buildLines(list.map((l) => ({ ...l, t: l.t * k })), true);
   }
   if (res?.plain) return buildLines(res.plain.split(/\r?\n/).map((text) => ({ t: 0, text: text.trim() })).filter((l, i, a) => l.text || (a[i - 1]?.text)), false);
-  lyState('lyrics', 'Текст не найден');
+  lyBox.innerHTML = `<div class="lystate">${svg('lyrics')}<p>Текст не найден</p><button class="btn-sm" id="lyFind">Подобрать текст</button></div>`;
 }
+
+// ---------------------------------------------------------------- manual picker: remixes / sped-up versions are rarely in LRCLIB, the original's text is the same
+const lyPick = $('#lyPick');
+const stripBrackets = (s) => s.replace(/\s*[(\[][^)\]]*[)\]]/g, '').replace(/\s+/g, ' ').trim() || s;
+let lyCands = [];
+
+function openPicker() {
+  if (!Lyr.track) return;
+  lyPick.classList.add('open');
+  $('#lyQ').value = stripBrackets(Lyr.track.title);
+  runPickSearch();
+}
+const closePicker = () => lyPick.classList.remove('open');
+
+async function runPickSearch() {
+  const q = $('#lyQ').value.trim();
+  const list = $('#lyList');
+  if (!q) return;
+  list.innerHTML = '<div class="lyload"><i></i><i></i><i></i></div>';
+  const res = await window.api.lyricsSearch(q);
+  if (res.error) { list.innerHTML = `<p class="hint">${esc(res.error)}</p>`; return; }
+  lyCands = res;
+  const dur = Lyr.q?.duration || 0;
+  list.innerHTML = res.length ? res.map((c, i) => {
+    const ratio = dur && c.duration ? dur / c.duration : 1;
+    const note = c.synced ? 'с синхронизацией' : 'только текст';
+    const speed = c.synced && Math.abs(ratio - 1) > 0.02 ? ` · тайминги ×${ratio.toFixed(2)}` : '';
+    return `<button class="cand" data-i="${i}"><b>${esc(c.title)} — ${esc(c.artist)}</b><span>${fmt(c.duration)} · ${note}${speed}</span></button>`;
+  }).join('') : '<p class="hint">Ничего не найдено. Попробуй изменить запрос.</p>';
+}
+
+async function pickCandidate(i) {
+  const c = lyCands[i];
+  if (!c || !Lyr.q) return;
+  const ratio = Lyr.q.duration && c.duration ? Lyr.q.duration / c.duration : 1;
+  const scale = c.synced && $('#lyScale').checked && ratio > 0.3 && ratio < 3 ? ratio : 1;
+  await window.api.lyricsSave({ track: Lyr.q, synced: c.synced, plain: c.plain, scale });
+  closePicker();
+  loadLyrics(Lyr.track);
+}
+
+$('#lySwap').onclick = openPicker;
+$('#lyClose').onclick = closePicker;
+$('#lyGo').onclick = runPickSearch;
+$('#lyQ').addEventListener('keydown', (e) => { if (e.key === 'Enter') runPickSearch(); e.stopPropagation(); });
+$('#lyList').addEventListener('click', (e) => { const b = e.target.closest('.cand'); if (b) pickCandidate(+b.dataset.i); });
+lyBox.addEventListener('click', (e) => { if (e.target.closest('#lyFind')) openPicker(); });
 
 function lySetActive(idx) {
   Lyr.lines.forEach((l, i) => {

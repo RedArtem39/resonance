@@ -238,7 +238,9 @@ async function ytGet(id) {
     if (S.set.autoplay) playQueue([t], 0);
   } catch (err) {
     S.dl.set(id, { state: 'err' });
-    toast(`Не получилось скачать: ${String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`, 6000);
+    const msg = String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
+    const bot = /not a bot|Sign in to confirm/i.test(msg);
+    toast(bot ? 'YouTube просит подтвердить, что ты не бот — это временная блокировка по IP из-за частых запросов. Подожди немного (обычно от получаса до пары часов) и повтори.' : `Не получилось скачать: ${msg}`, bot ? 10000 : 6000);
   }
   paintDl(id);
 }
