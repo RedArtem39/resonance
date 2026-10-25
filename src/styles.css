@@ -406,3 +406,4 @@ body.bar-on .bar { transform: none; pointer-events: auto; }
 .cand b { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cand span { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--on-surface-var); }
 .cand:hover span { color: inherit; opacity: .8; }
+.btns { display: flex; gap: 8px; flex: none; }

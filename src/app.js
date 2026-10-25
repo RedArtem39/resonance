@@ -230,7 +230,7 @@ async function ytGet(id) {
   S.dl.set(id, { state: 'dl', pct: 0 });
   paintDl(id);
   try {
-    const t = await window.api.ytDownload({ id, title: item.title, author: item.author });
+    const t = await window.api.ytDownload({ id, title: item.title, author: item.author, useCookies: S.set.ytCookies !== false });
     trackAdded(t);
     if (!S.tracks.some((x) => x.path === t.path)) S.tracks.push(t);
     sorted(S.tracks);
@@ -240,7 +240,7 @@ async function ytGet(id) {
     S.dl.set(id, { state: 'err' });
     const msg = String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
     const bot = /not a bot|Sign in to confirm/i.test(msg);
-    toast(bot ? 'YouTube просит подтвердить, что ты не бот — это временная блокировка по IP из-за частых запросов. Подожди немного (обычно от получаса до пары часов) и повтори.' : `Не получилось скачать: ${msg}`, bot ? 10000 : 6000);
+    toast(bot ? 'YouTube просит подтвердить, что ты не бот — это временная блокировка по IP из-за частых запросов. Подожди немного (обычно от получаса до пары часов) или включи вход через cookies: Настройки → YouTube: вход.' : `Не получилось скачать: ${msg}`, bot ? 10000 : 6000);
   }
   paintDl(id);
 }
@@ -268,6 +268,12 @@ function renderSettings(c) {
       <p class="hint">Скачивание с YouTube может противоречить условиям сервиса и авторским правам. Используй для контента, на который у тебя есть права.</p>
     </div>
     <div class="panel">
+      <h4>YouTube: вход</h4>
+      <p class="hint">Иногда YouTube блокирует загрузки по IP («подтвердите, что вы не бот»). Cookies запасного аккаунта это снимают. Используй <b>только запасной аккаунт</b>: cookies дают доступ к аккаунту, а автоматические загрузки могут его ограничить.</p>
+      ${switchRow('setCookies', 'Использовать cookies при загрузке', 'Работает, когда файл cookies загружен.', S.set.ytCookies !== false)}
+      <div class="frow"><span><b>Файл cookies</b><small id="ckStatus">Проверяю…</small></span><div class="btns"><button class="mini" id="ckImport">Импорт…</button><button class="mini" id="ckRemove">Удалить</button></div></div>
+    </div>
+    <div class="panel">
       <h4>Окно</h4>
       ${switchRow('setTray', 'Сворачивать в трей при закрытии', 'Крестик прячет окно в трей, музыка продолжает играть. Выйти можно из меню значка в трее.', S.set.tray)}
     </div>
@@ -284,6 +290,7 @@ function renderSettings(c) {
     </div>
   </div>`;
   $$('#setTheme button', c).forEach((b) => b.classList.toggle('on', b.dataset.t === root.dataset.theme));
+  paintCookies();
   window.api.appInfo().then((i) => { const el = $('#appVer'); if (el) el.textContent = `Resonance ${i.version}${i.installed ? '' : ' (режим разработки)'}`; });
   if (S.upd) paintVersions();
   // yt-dlp is a one-file exe that takes a moment to start, so the version fills in after the panel is already up
@@ -296,6 +303,14 @@ function renderSettings(c) {
 }
 const saveSet = () => store.set('settings', S.set);
 
+async function paintCookies() {
+  const el = $('#ckStatus');
+  if (!el) return;
+  const st = await window.api.ytCookiesStatus();
+  el.textContent = st.present ? `Загружено: ${st.count} cookies` : 'Не загружены';
+  const rm = $('#ckRemove'); if (rm) rm.disabled = !st.present;
+}
+
 // ---------------------------------------------------------------- updates / rollback (GitHub Releases, see src/update.js)
 const cmpVer = (x, y) => { const a = String(x).split('.').map(Number), b = String(y).split('.').map(Number); for (let i = 0; i < 3; i++) if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) - (b[i] || 0); return 0; };
 function paintVersions() {
@@ -307,7 +322,7 @@ function paintVersions() {
     const c = cmpVer(r.version, u.current);
     const label = c > 0 ? 'Обновить' : c < 0 ? 'Откатить' : 'Переустановить';
     const firstLine = r.notes.split(/\r?\n/).find((l) => l.trim()) || '';
-    const note = firstLine.replace(/^#+\s*/, '').slice(0, 90);
+    const note = firstLine.replace(/[*_`#]/g, '').trim().slice(0, 90); // release notes are markdown; show them as plain text
     return `<div class="frow"><span><b>v${esc(r.version)}${c === 0 ? ' · сейчас' : ''}${r.prerelease ? ' · пре-релиз' : ''}</b><small>${new Date(r.date).toLocaleDateString()}${note ? ' · ' + esc(note) : ''}</small></span><button class="mini" data-ver="${esc(r.version)}"${u.installed ? '' : ' disabled title="Работает только в установленном приложении"'}>${label}</button></div>`;
   }).join('');
 }
@@ -634,6 +649,13 @@ async function handleContent(e) {
     try { const v = await window.api.ytUpdate(); $('#ytVer').textContent = `Версия ${v}`; toast('yt-dlp обновлён'); } catch (err) { toast(`Не удалось обновить: ${err.message || err}`, 6000); }
     btn.disabled = false; return;
   }
+  if (t.closest('#ckImport')) {
+    const r = await window.api.ytCookiesImport();
+    if (r.ok) { S.set.ytCookies = true; saveSet(); const sw = $('#setCookies'); if (sw) sw.checked = true; toast(`Cookies загружены: ${r.count}`, 3000); }
+    else if (!r.canceled) toast(`Не получилось: ${r.error}`, 6000);
+    return paintCookies();
+  }
+  if (t.closest('#ckRemove')) { await window.api.ytCookiesRemove(); toast('Cookies удалены', 2500); return paintCookies(); }
   if (t.closest('#updCheck')) return checkUpdates(true);
   const vb = t.closest('[data-ver]');
   if (vb && !vb.disabled) return installVersion(vb);
@@ -643,6 +665,7 @@ async function handleContent(e) {
 $('#content').addEventListener('change', (e) => {
   if (e.target.id === 'setYt') { S.set.yt = e.target.checked; saveSet(); if (!S.set.yt) { ytSeq++; S.yt = { q: '', status: 'idle', items: [] }; } toast(S.set.yt ? 'Поиск на YouTube включён' : 'Только локальный поиск', 2000); }
   if (e.target.id === 'setAuto') { S.set.autoplay = e.target.checked; saveSet(); }
+  if (e.target.id === 'setCookies') { S.set.ytCookies = e.target.checked; saveSet(); }
   if (e.target.id === 'setUpdAuto') { S.set.updates = e.target.checked; saveSet(); }
   if (e.target.id === 'setTray') { S.set.tray = e.target.checked; saveSet(); window.api.trayConfig({ closeToTray: S.set.tray }); }
 });

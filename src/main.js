@@ -305,7 +305,9 @@ async function ensureYtdlp(onStatus) {
 }
 
 const run = (exe, args, onLine) => new Promise((resolve, reject) => {
-  const p = spawn(exe, args, { windowsHide: true, env: { ...process.env, PYTHONUTF8: '1' } });
+  // ELECTRON_RUN_AS_NODE: yt-dlp needs a JavaScript runtime to solve YouTube's player challenges; we hand it this very
+  // executable (see --js-runtimes below), so users do not have to install Node.
+  const p = spawn(exe, args, { windowsHide: true, env: { ...process.env, PYTHONUTF8: '1', ELECTRON_RUN_AS_NODE: '1' } });
   let out = '', err = '';
   const feed = (chunk, isErr) => {
     const s = chunk.toString('utf8');
@@ -343,7 +345,28 @@ function splitMeta(title, author) {
   return { artist, title: cut > 0 ? t.slice(cut + 1).trim() : t };
 }
 
-ipcMain.handle('yt:download', async (e, { id, title, author }) => {
+// ---- optional YouTube login (cookies of a spare account), used when YouTube answers "confirm you're not a bot"
+const cookieFile = () => path.join(app.getPath('userData'), 'cookies', 'youtube.txt');
+const cookieInfo = async () => {
+  try {
+    const rows = (await fs.readFile(cookieFile(), 'utf8')).split(/\r?\n/).filter((l) => l && (!l.startsWith('#') || l.startsWith('#HttpOnly_')));
+    return { present: rows.length > 0, count: rows.length };
+  } catch { return { present: false, count: 0 }; }
+};
+ipcMain.handle('yt:cookies:status', cookieInfo);
+ipcMain.handle('yt:cookies:import', async () => {
+  const r = await dialog.showOpenDialog({ title: 'Файл cookies YouTube', properties: ['openFile'], filters: [{ name: 'Cookies (JSON / txt)', extensions: ['json', 'txt'] }, { name: 'Все файлы', extensions: ['*'] }] });
+  if (r.canceled) return { ok: false, canceled: true };
+  try {
+    const { text, count } = require('./cookies').normalize(await fs.readFile(r.filePaths[0], 'utf8'));
+    await fs.mkdir(path.dirname(cookieFile()), { recursive: true });
+    await fs.writeFile(cookieFile(), text, { mode: 0o600 });
+    return { ok: true, count };
+  } catch (err) { return { ok: false, error: String(err.message || err) }; }
+});
+ipcMain.handle('yt:cookies:remove', async () => { await fs.rm(cookieFile(), { force: true }); return true; });
+
+ipcMain.handle('yt:download', async (e, { id, title, author, useCookies }) => {
   if (!/^[\w-]{11}$/.test(id)) throw new Error('Некорректный ID видео');
   const send = (ch, v) => !e.sender.isDestroyed() && e.sender.send(ch, v);
   const exe = await ensureYtdlp((s) => send('yt:note', s));
@@ -351,6 +374,8 @@ ipcMain.handle('yt:download', async (e, { id, title, author }) => {
   await fs.mkdir(dir, { recursive: true });
   const args = [
     '-f', 'bestaudio[ext=m4a]/bestaudio', '--no-playlist', '--newline', '--progress', '--no-warnings',
+    '--js-runtimes', `node:${process.execPath}`,
+    ...(useCookies !== false && existsSync(cookieFile()) ? ['--cookies', cookieFile()] : []),
     '--write-thumbnail', '--progress-template', 'download:%(progress._percent_str)s',
     '-o', path.join(dir, '%(id)s.%(ext)s'), `https://www.youtube.com/watch?v=${id}`,
   ];
