@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, screen, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, protocol, net, shell, screen, Tray, Menu, nativeImage, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs/promises');
 const { createWriteStream, createReadStream, existsSync } = require('fs');
@@ -172,6 +172,7 @@ async function readTrack(f) {
     t.albumArtist = meta.artist || t.albumArtist;
     t.album = side.album || (t.album === 'Без альбома' ? 'YouTube' : t.album);
   }
+  Object.assign(t, (await getOverrides())[f] || {}); // the user's own edits win over tags and sidecars
   return t;
 }
 
@@ -181,6 +182,51 @@ ipcMain.handle('pick-folder', async () => {
 });
 ipcMain.handle('download-dir', async () => { await fs.mkdir(downloadDir(), { recursive: true }); return downloadDir(); });
 ipcMain.handle('open-dir', (_, p) => shell.openPath(p));
+
+// ------------------------------------------------------------------ user edits (rename, move to album): kept in the profile, keyed by file path
+const overridesFile = () => path.join(app.getPath('userData'), 'overrides.json');
+let overridesCache = null;
+async function getOverrides() {
+  if (!overridesCache) { try { overridesCache = JSON.parse(await fs.readFile(overridesFile(), 'utf8')); } catch { overridesCache = {}; } }
+  return overridesCache;
+}
+const saveOverrides = async () => { await fs.mkdir(path.dirname(overridesFile()), { recursive: true }); await fs.writeFile(overridesFile(), JSON.stringify(overridesCache)); };
+const EDITABLE = ['title', 'artist', 'album', 'albumKey'];
+
+ipcMain.handle('track:update', async (_, p, patch) => {
+  const ov = await getOverrides();
+  const cur = { ...(ov[p] || {}) };
+  for (const k of EDITABLE) if (typeof patch[k] === 'string') cur[k] = patch[k].slice(0, 300);
+  ov[p] = cur;
+  await saveOverrides();
+  return cur;
+});
+
+// Delete = move to the Recycle Bin, never a hard delete. Files made by our own downloader take their sidecars (meta + thumbnail) with them.
+ipcMain.handle('track:delete', async (_, p) => {
+  try {
+    const ext = path.extname(p).toLowerCase();
+    if (!EXT.has(ext)) throw new Error('Это не аудиофайл');
+    const st = await fs.stat(p).catch(() => null);
+    if (st && !st.isFile()) throw new Error('Это не файл');
+    const base = p.slice(0, -ext.length);
+    const isDownload = existsSync(base + '.meta.json');
+    if (st) await shell.trashItem(p);
+    if (isDownload) for (const s of ['.meta.json', '.webp', '.jpg', '.jpeg', '.png']) await fs.rm(base + s, { force: true }).catch(() => {});
+    const ov = await getOverrides();
+    if (ov[p]) { delete ov[p]; await saveOverrides(); }
+    return { ok: true };
+  } catch (err) { return { ok: false, error: String(err.message || err) }; }
+});
+
+ipcMain.handle('reveal', (_, p) => { shell.showItemInFolder(p); return true; });
+ipcMain.handle('open-url', (_, url) => (/^https:\/\/www\.youtube\.com\/watch\?v=[\w-]{11}$/.test(url) ? shell.openExternal(url) : false));
+ipcMain.handle('copy-text', (_, s) => { clipboard.writeText(String(s)); return true; });
+ipcMain.handle('edit-cmd', (e, cmd) => {
+  const c = e.sender;
+  ({ cut: () => c.cut(), copy: () => c.copy(), paste: () => c.paste(), selectAll: () => c.selectAll() })[cmd]?.();
+  return true;
+});
 const winOf = (e) => BrowserWindow.fromWebContents(e.sender);
 ipcMain.on('win:min', (e) => winOf(e)?.minimize());
 ipcMain.on('win:max', (e) => { const w = winOf(e); if (w) w.isMaximized() ? w.unmaximize() : w.maximize(); });

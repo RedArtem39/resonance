@@ -473,3 +473,43 @@ input.bal::-webkit-slider-runnable-track { height: 14px; border-radius: 7px; bac
   background: radial-gradient(130% 100% at 50% -10%, oklch(25% calc(var(--c) * .55) var(--h)), oklch(15.5% calc(var(--c) * .3) var(--h)) 72%);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / .07), inset 0 -30px 60px rgb(0 0 0 / .25); transition: background .9s var(--smooth); }
 .eqcard { padding-top: 14px; }
+
+/* ---------- context menu + dialogs ---------- */
+.ctxmenu { position: fixed; z-index: 100; min-width: 230px; padding: 8px; border-radius: 20px; background: var(--surface-highest); color: var(--on-surface);
+  box-shadow: 0 12px 40px rgb(0 0 0 / .42), 0 0 0 1px color-mix(in oklch, var(--on-surface) 10%, transparent); animation: ctxIn .22s var(--spring); transform-origin: top left; }
+@keyframes ctxIn { from { opacity: 0; transform: scale(.9); } }
+.ctxmenu hr { border: 0; height: 1px; margin: 6px 10px; background: color-mix(in oklch, var(--on-surface) 12%, transparent); }
+.ctx-item { display: block; width: 100%; text-align: left; height: 40px; padding: 0 14px; border-radius: 12px; font-size: 14px; font-weight: 600; transition: background .15s, border-radius .3s var(--spring); }
+.ctx-item:hover:not(:disabled), .ctx-item:focus-visible { background: color-mix(in oklch, var(--primary) 20%, transparent); border-radius: 16px; outline: none; }
+.ctx-item:disabled { opacity: .4; }
+.ctx-item.danger { color: oklch(72% .17 25); }
+:root[data-theme='light'] .ctx-item.danger { color: oklch(48% .2 25); }
+.ctx-item.danger:hover:not(:disabled), .ctx-item.danger:focus-visible { background: color-mix(in oklch, oklch(62% .2 25) 22%, transparent); }
+
+.modal { position: fixed; inset: 0; z-index: 110; display: grid; place-items: center; background: rgb(0 0 0 / 0); transition: background .25s; }
+.modal.in { background: rgb(0 0 0 / .52); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.modal.out { background: rgb(0 0 0 / 0); }
+.dlg { width: min(440px, calc(100vw - 48px)); max-height: calc(100vh - 80px); display: flex; flex-direction: column; gap: 14px; padding: 26px 26px 20px; border-radius: 30px;
+  background: var(--surface-high); color: var(--on-surface); box-shadow: 0 24px 70px rgb(0 0 0 / .5); opacity: 0; transform: translateY(20px) scale(.95); transition: opacity .25s, transform .45s var(--spring); }
+.modal.in .dlg { opacity: 1; transform: none; }
+.modal.out .dlg { opacity: 0; transform: translateY(10px) scale(.97); transition-duration: .16s; }
+.dlg h3 { font-size: 22px; font-weight: 750; letter-spacing: -.02em; }
+.dtext { color: var(--on-surface-var); font-size: 14.5px; line-height: 1.5; margin: 0; overflow-wrap: anywhere; }
+.dinput { height: 52px; padding: 0 20px; border-radius: 26px; border: 0; outline: 0; background: var(--surface-highest); color: inherit; font: inherit; font-size: 15px; user-select: text; }
+.dinput:focus { box-shadow: 0 0 0 2px var(--primary); }
+.dlist { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; margin: 0 -6px; padding: 0 6px; scrollbar-width: thin; }
+.ditem { display: block; text-align: left; padding: 10px 16px; border-radius: 8px; background: var(--surface-highest); flex: none; transition: background .15s, border-radius .35s var(--spring); }
+.ditem:first-child { border-radius: 20px 20px 8px 8px; } .ditem:last-child { border-radius: 8px 8px 20px 20px; }
+.ditem:hover { border-radius: 18px; background: color-mix(in oklch, var(--primary) 18%, var(--surface-highest)); }
+.ditem.on { background: var(--primary-container); color: var(--on-primary-container); border-radius: 22px; }
+.ditem b { display: block; font-size: 14px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ditem span { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; opacity: .75; }
+.dact { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.dbtn { height: 46px; padding: 0 24px; border-radius: 23px; font-size: 14.5px; font-weight: 700; transition: border-radius .35s var(--spring), transform .3s var(--spring), background .2s, opacity .2s; }
+.dbtn:hover:not(:disabled) { border-radius: 14px; }
+.dbtn:active:not(:disabled) { transform: scale(.94); }
+.dbtn:disabled { opacity: .4; }
+.dcancel { background: var(--surface-highest); color: var(--on-surface); }
+.dok { background: var(--primary); color: var(--on-primary); }
+.ddanger { background: oklch(58% .2 25); color: #fff; }
+.ddanger:hover:not(:disabled) { background: oklch(54% .21 25); }

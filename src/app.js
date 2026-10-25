@@ -17,7 +17,7 @@ const ytIdx = new Map(); // youtube id -> local track (files downloaded by us ar
 // Albums that are not real albums (downloads, untagged files) become ONE collection each instead of one per artist.
 // The separator must survive being put into an HTML attribute — a NUL character does not (the parser turns it into U+FFFD, and the click then matched nothing).
 const LOOSE_ALBUMS = new Set(['YouTube', 'Без альбома']);
-const albumKey = (t) => (LOOSE_ALBUMS.has(t.album) ? t.album : t.albumArtist + String.fromCharCode(0x2016) + t.album);
+const albumKey = (t) => t.albumKey || (LOOSE_ALBUMS.has(t.album) ? t.album : t.albumArtist + String.fromCharCode(0x2016) + t.album); // t.albumKey: set when the user moved the track / renamed its album
 const fileName = (p) => p.split(/[\\/]/).pop();
 const trackAdded = (t) => {
   byPath.set(t.path, t);

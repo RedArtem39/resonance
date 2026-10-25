@@ -20,6 +20,7 @@
 **Player**
 - Plays local `mp3`, `flac`, `ogg`, `opus`, `m4a`, `aac`, `wav`, `webm`. Add folders from the sidebar or drop them onto the window.
 - Library views: tracks, albums, artists, favourites. Fast search across title, artist and album.
+- Right-click menus on tracks, albums, artists, YouTube results, the now-playing block and text fields: play / play next / add to queue, favourite, move to an album, rename, show in folder, delete. Renaming and deleting always ask for confirmation; delete moves the file to the Recycle Bin. Names and album assignments are kept in the app profile (the audio files are not modified).
 - Queue, shuffle, repeat (off / all / one), playback speed (0.75–1.5×) and a sleep timer with a fade-out.
 - Media keys and the OS media overlay are supported.
 - System tray: play/pause, next/previous and show/hide from the tray menu; the tooltip shows the current track. Closing the window hides it to the tray and the music keeps playing (can be turned off in *Settings*); *Quit* in the tray menu exits. Launching Resonance again just brings the existing window back.
@@ -109,6 +110,8 @@ src/eq.js          Web Audio graph: equalizer, balance, mono/swap, dynamics + li
 src/eqview.js      The "Sound" view: glass-tube equalizer, lightning effect, audio panel
 src/viz.js         Visualizer
 src/lyrics.js      LRC parsing and the word-by-word lyrics view
+src/menu.js        Context menu and dialogs (confirm / input / list)
+src/context.js     What each right-click menu offers, and rename / move / delete
 src/app.js         Library, search, playback, settings, UI wiring
 src/styles.css     Material 3 Expressive styling
 installer/         The installer app (Electron) and its build script
