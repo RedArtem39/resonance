@@ -60,7 +60,7 @@ The installer is **not code-signed**, so Windows SmartScreen may show an "unknow
 
 The installer is a self-extracting Electron app, so its window can take several seconds to appear after you start it (it has to unpack the ~320 MB Electron runtime first; Electron itself starts in about a second).
 
-Silent install for scripts: `Resonance-Setup-<version>.exe --silent [--dir=<path>] [--desktop] [--startmenu] [--launch]`.
+Silent install for scripts: `Resonance-Setup-<version>.exe --silent [--dir=<path>] [--desktop] [--startmenu] [--launch] [--no-register]` (`--no-register` skips the "Apps & features" entry).
 Silent uninstall: `"<install dir>\Resonance.exe" --uninstall --silent [--purge]` (`--purge` also deletes settings and cache; downloaded music is never touched).
 
 Resonance currently targets **Windows 10/11 (x64)**. The yt-dlp integration downloads the Windows executable.

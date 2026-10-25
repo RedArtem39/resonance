@@ -5,6 +5,7 @@
 // "Apps & features" registry entry whose uninstall command is `Resonance.exe --uninstall` (handled inside the app, see src/uninstall.js).
 //
 // Command line (for scripting/tests):  --silent  --dir=<path>  --desktop  --startmenu  --launch  --hidden  --log=<file>
+//   --no-register  (silent mode) do not touch the "Apps & features" registry entry, so a test install never disturbs a real one
 
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
@@ -137,7 +138,7 @@ async function doInstall(o, on) {
     ['UninstallString', 'REG_SZ', `"${exe}" --uninstall`], ['QuietUninstallString', 'REG_SZ', `"${exe}" --uninstall --silent`],
     ['NoModify', 'REG_DWORD', 1], ['NoRepair', 'REG_DWORD', 1], ['EstimatedSize', 'REG_DWORD', kb],
   ];
-  for (const [name, type, value] of values) await run('reg', ['add', REG_KEY, '/v', name, '/t', type, '/d', String(value), '/f']);
+  if (!o.noRegister) for (const [name, type, value] of values) await run('reg', ['add', REG_KEY, '/v', name, '/t', type, '/d', String(value), '/f']);
 
   on(100, 'done');
   log('install ok');
@@ -191,7 +192,7 @@ app.whenReady().then(async () => {
   if (flag('silent')) {
     try {
       const existing = await findExisting();
-      const res = await install({ dir: opt('dir') || existing?.dir || DEFAULT_DIR, desktop: flag('desktop'), startmenu: flag('startmenu') }, () => {});
+      const res = await install({ dir: opt('dir') || existing?.dir || DEFAULT_DIR, desktop: flag('desktop'), startmenu: flag('startmenu'), noRegister: flag('no-register') }, () => {});
       if (flag('launch')) launch(res.exe);
       app.exit(0);
     } catch (err) { log(`silent install failed: ${err.message}`); app.exit(1); }
