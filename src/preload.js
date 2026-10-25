@@ -1,9 +1,21 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
+const on = (ch, cb) => ipcRenderer.on(ch, (_, v) => cb(v));
+
 contextBridge.exposeInMainWorld('api', {
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
+  downloadDir: () => ipcRenderer.invoke('download-dir'),
+  openDir: (p) => ipcRenderer.invoke('open-dir', p),
   scan: (roots) => ipcRenderer.invoke('scan', roots),
   cover: (file) => ipcRenderer.invoke('cover', file),
-  onBatch: (cb) => ipcRenderer.on('scan:batch', (_, tracks) => cb(tracks)),
-  pathOf: (file) => webUtils.getPathForFile(file),
+  lyrics: (q) => ipcRenderer.invoke('lyrics', q),
+  ytSearch: (q) => ipcRenderer.invoke('yt:search', q),
+  ytDownload: (v) => ipcRenderer.invoke('yt:download', v),
+  ytStatus: () => ipcRenderer.invoke('yt:status'),
+  ytUpdate: () => ipcRenderer.invoke('yt:update'),
+  onBatch: (cb) => on('scan:batch', cb),
+  onYtProgress: (cb) => on('yt:progress', cb),
+  onYtStatus: (cb) => on('yt:note', cb),
+  setTitleSymbols: (color) => ipcRenderer.send('title-symbols', color),
+  pathOf:(file) => webUtils.getPathForFile(file),
 });

@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: file:; media-src 'self' file:; style-src 'self' 'unsafe-inline'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; media-src 'self' rmedia:; connect-src 'self' rmedia:; style-src 'self' 'unsafe-inline'">
   <title>Resonance</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-tab="now">
   <div class="drag"></div>
 
   <nav class="rail">
@@ -16,8 +16,10 @@
       <button class="rail-item active" data-view="tracks"><span class="pill"><i data-i="music"></i></span><span class="lbl">Треки</span></button>
       <button class="rail-item" data-view="albums"><span class="pill"><i data-i="album"></i></span><span class="lbl">Альбомы</span></button>
       <button class="rail-item" data-view="artists"><span class="pill"><i data-i="person"></i></span><span class="lbl">Артисты</span></button>
+      <button class="rail-item" data-view="favs"><span class="pill"><i data-i="heart"></i></span><span class="lbl">Избранное</span></button>
+      <button class="rail-item" data-view="eq"><span class="pill"><i data-i="eq"></i></span><span class="lbl">Звук</span></button>
     </div>
-    <button class="rail-item" id="theme"><span class="pill"><i data-i="theme"></i></span><span class="lbl">Тема</span></button>
+    <button class="rail-item" data-view="settings"><span class="pill"><i data-i="settings"></i></span><span class="lbl">Настройки</span></button>
   </nav>
 
   <main class="main">
@@ -36,27 +38,53 @@
   </main>
 
   <aside class="now">
-    <div class="cover-wrap">
-      <div class="cover" id="cover"><img id="coverImg" alt=""><i data-i="music" class="ph"></i></div>
+    <div class="tabs" role="tablist">
+      <button class="tab on" data-tab="now">Сейчас</button>
+      <button class="tab" data-tab="lyrics">Текст</button>
+      <button class="tab" data-tab="queue">Очередь</button>
     </div>
-    <div class="meta">
-      <h2 id="nTitle">Ничего не играет</h2>
-      <p id="nArtist">Выбери трек в библиотеке</p>
+
+    <div class="stage">
+      <div class="pane p-now">
+        <div class="cover-wrap" id="coverWrap">
+          <canvas id="ring"></canvas>
+          <div class="cover" id="cover"><img id="coverImg" alt=""><i data-i="music" class="ph"></i></div>
+        </div>
+      </div>
+      <div class="pane p-lyrics"><div class="lyrics" id="lyrics"></div></div>
+      <div class="pane p-queue"><div class="queue" id="queue"></div></div>
     </div>
-    <div class="seek">
-      <canvas id="wave"></canvas>
-      <div class="times"><span id="tCur">0:00</span><span id="tDur">0:00</span></div>
+
+    <div class="dock">
+      <div class="meta">
+        <div class="mt">
+          <h2 id="nTitle">Ничего не играет</h2>
+          <p id="nArtist">Выбери трек в библиотеке</p>
+        </div>
+        <button class="ctl toggle" id="fav" title="В избранное"><i data-i="heart"></i></button>
+      </div>
+      <div class="seek">
+        <canvas id="wave"></canvas>
+        <div class="times"><span id="tCur">0:00</span><span id="tDur">0:00</span></div>
+      </div>
+      <div class="controls">
+        <button class="ctl toggle" id="shuffle" title="Перемешать"><i data-i="shuffle"></i></button>
+        <button class="ctl" id="prev" title="Назад"><i data-i="prev"></i></button>
+        <button class="play" id="play" title="Играть"><i data-i="play" id="playIcon"></i></button>
+        <button class="ctl" id="next" title="Вперёд"><i data-i="next"></i></button>
+        <button class="ctl toggle" id="repeat" title="Повтор"><i data-i="repeat"></i></button>
+      </div>
+      <div class="vol">
+        <button class="mini" id="speed" title="Скорость">1×</button>
+        <button class="mini" id="sleep" title="Таймер сна"><i data-i="timer"></i><span id="sleepTxt">Сон</span></button>
+        <i data-i="volume"></i><input id="vol" type="range" min="0" max="1" step="0.01" value="0.8">
+      </div>
     </div>
-    <div class="controls">
-      <button class="ctl toggle" id="shuffle" title="Перемешать"><i data-i="shuffle"></i></button>
-      <button class="ctl" id="prev" title="Назад"><i data-i="prev"></i></button>
-      <button class="play" id="play" title="Играть"><i data-i="play" id="playIcon"></i></button>
-      <button class="ctl" id="next" title="Вперёд"><i data-i="next"></i></button>
-      <button class="ctl toggle" id="repeat" title="Повтор"><i data-i="repeat"></i></button>
-    </div>
-    <div class="vol"><i data-i="volume"></i><input id="vol" type="range" min="0" max="1" step="0.01" value="0.8"></div>
   </aside>
 
+  <script src="util.js"></script>
+  <script src="eq.js"></script>
+  <script src="lyrics.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

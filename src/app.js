@@ -1,61 +1,35 @@
 'use strict';
 
-const $ = (s, r = document) => r.querySelector(s);
-const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-const root = document.documentElement;
-
-const ICON = {
-  play: 'M8 5v14l11-7z',
-  pause: 'M6 19h4V5H6v14zm8-14v14h4V5h-4z',
-  next: 'M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z',
-  prev: 'M6 6h2v12H6zm3.5 6l8.5 6V6z',
-  shuffle: 'M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z',
-  repeat: 'M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z',
-  volume: 'M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z',
-  search: 'M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
-  music: 'M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z',
-  album: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z',
-  person: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
-  add: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z',
-  close: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
-  folder: 'M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z',
-  theme: 'M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10v8c2.21 0 4-1.79 4-4s-1.79-4-4-4z',
-};
-const svg = (n) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICON[n]}"/></svg>`;
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-$$('[data-i]').forEach((el) => (el.innerHTML = svg(el.dataset.i)));
-
-const store = {
-  get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } },
-};
-
 // ---------------------------------------------------------------- state
 const S = {
   tracks: [], view: 'tracks', filter: null, q: '',
   queue: [], i: -1, shuffle: false, repeat: 0, // repeat: 0 off, 1 all, 2 one
   folders: store.get('folders', []),
+  favs: new Set(store.get('favs', [])),
+  set: { yt: true, autoplay: true, ...store.get('settings', {}) },
+  yt: { q: '', status: 'idle', items: [] },
+  dl: new Map(), // youtube id -> { state: 'dl' | 'done' | 'err', pct }
+  dlDir: '',
 };
-const audio = new Audio();
 audio.volume = store.get('volume', 0.8);
 const byPath = new Map();
+const ytIdx = new Map(); // youtube id -> local track (files downloaded by us are named <id>.<ext>)
 const albumKey = (t) => `${t.albumArtist}\u0000${t.album}`;
-const fmt = (s) => { s = Math.max(0, Math.floor(s || 0)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-const hueOf = (str) => { let h = 0; for (const ch of str) h = (h * 31 + ch.charCodeAt(0)) % 360; return h; };
-const plural = (n, a, b, c) => { const m = n % 100, k = n % 10; return m > 10 && m < 20 ? c : k === 1 ? a : k >= 2 && k <= 4 ? b : c; };
+const fileName = (p) => p.split(/[\\/]/).pop();
+const trackAdded = (t) => {
+  byPath.set(t.path, t);
+  const m = fileName(t.path).match(/^([\w-]{11})\.\w+$/);
+  if (m) ytIdx.set(m[1], t);
+};
 
-// ---------------------------------------------------------------- shapes (cookie cover)
-const COOKIE_N = 9;
-function cookie(amp) {
-  const pts = [];
-  for (let i = 0; i < 120; i++) {
-    const a = (i / 120) * Math.PI * 2;
-    const r = 1 - amp + amp * Math.cos(COOKIE_N * a);
-    pts.push(`${(50 + 50 * r * Math.cos(a)).toFixed(2)}% ${(50 + 50 * r * Math.sin(a)).toFixed(2)}%`);
-  }
-  return `polygon(${pts.join(',')})`;
+function toast(msg, ms = 3400) {
+  let el = $('#toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; document.body.append(el); }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => el.classList.remove('show'), ms);
 }
-root.style.setProperty('--cookie', cookie(0.06));
 
 // ---------------------------------------------------------------- dynamic colour from cover
 function toOklab(r, g, b) {
@@ -82,11 +56,11 @@ function paletteFrom(src) {
       let sa = 0, sb = 0, sw = 0;
       for (let i = 0; i < d.length; i += 4) {
         const [a, b] = toOklab(d[i], d[i + 1], d[i + 2]);
-        const w = (a * a + b * b) + 0.0005; // weigh vivid pixels heavily
+        const w = a * a + b * b + 0.0005; // weigh vivid pixels heavily
         sa += a * w; sb += b * w; sw += w;
       }
       const a = sa / sw, b = sb / sw;
-      resolve({ h: ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360, c: Math.min(0.17, Math.max(0.012, Math.hypot(a, b) * 1.15)) });
+      resolve({ h: ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360, c: clamp(Math.hypot(a, b) * 1.15, 0.012, 0.17) });
     };
     im.src = src;
   });
@@ -100,7 +74,7 @@ setPalette({ h: 285, c: 0.1 });
 // ---------------------------------------------------------------- covers (cached per album)
 const coverCache = new Map();
 function getCover(t) {
-  const k = albumKey(t);
+  const k = ytIdx.has(fileName(t.path).split('.')[0]) ? t.path : albumKey(t);
   if (!coverCache.has(k)) coverCache.set(k, window.api.cover(t.path));
   return coverCache.get(k);
 }
@@ -113,44 +87,64 @@ const lazyCovers = new IntersectionObserver((entries) => {
   }
 }, { root: $('#content'), rootMargin: '300px' });
 
-// ---------------------------------------------------------------- library views
+// ---------------------------------------------------------------- library data
 function sorted(list) {
   return list.sort((a, b) =>
     a.albumArtist.localeCompare(b.albumArtist) || a.album.localeCompare(b.album) ||
     a.disk - b.disk || a.no - b.no || a.title.localeCompare(b.title));
 }
+const matchQ = (t, q) => `${t.title} ${t.artist} ${t.album}`.toLowerCase().includes(q);
 function visible() {
   let list = S.tracks;
+  if (S.view === 'favs') list = list.filter((t) => S.favs.has(t.path));
   if (S.filter?.kind === 'album') list = list.filter((t) => albumKey(t) === S.filter.value);
   if (S.filter?.kind === 'artist') list = list.filter((t) => t.artist === S.filter.value || t.albumArtist === S.filter.value);
-  if (S.q) {
-    const q = S.q.toLowerCase();
-    list = list.filter((t) => `${t.title} ${t.artist} ${t.album}`.toLowerCase().includes(q));
-  }
   return list;
 }
 const groupBy = (list, keyFn) => { const m = new Map(); for (const t of list) { const k = keyFn(t); (m.get(k) ?? m.set(k, []).get(k)).push(t); } return m; };
 
+// ---------------------------------------------------------------- views
+const TITLES = { tracks: 'Треки', albums: 'Альбомы', artists: 'Артисты', favs: 'Избранное', eq: 'Звук', settings: 'Настройки' };
 let shown = [];
-function render() {
+
+const rowHtml = (t, i) => `
+  <div class="row${t.path === S.queue[S.i] ? ' active' : ''}" role="button" tabindex="0" data-i="${i}" data-path="${esc(t.path)}">
+    <div class="art">${esc([...t.title][0]?.toUpperCase() ?? '♪')}</div>
+    <div class="t"><b>${esc(t.title)}</b><span>${esc(t.artist)}</span></div>
+    <div class="al">${esc(t.album)}</div>
+    <button class="rowq" title="В очередь" data-q="${esc(t.path)}">${svg('queueAdd')}</button>
+    <div class="d">${fmt(t.duration)}</div></div>`;
+
+function render(keepScroll = false) {
+  const c = $('#content');
+  const top = c.scrollTop;
+  const f = S.filter;
+  const searching = !!S.q;
+  $('#title').textContent = searching ? 'Поиск' : f ? f.label : TITLES[S.view];
+  $('#chips').innerHTML = f && !searching ? `<button class="chip" id="clearFilter">${svg('close')}${esc(f.kind === 'album' ? 'Альбом' : 'Артист')}</button>` : '';
+  $$('.rail-item[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === S.view && !searching));
+
+  if (searching) renderSearch();
+  else if (S.view === 'eq') { $('#sub').textContent = '10 полос · 31 Гц – 16 кГц'; renderEq(c); }
+  else if (S.view === 'settings') { $('#sub').textContent = ''; renderSettings(c); }
+  else renderLibrary(c);
+  c.scrollTop = keepScroll ? top : 0;
+}
+
+function renderLibrary(c) {
   const list = visible();
   shown = list;
-  const titles = { tracks: 'Треки', albums: 'Альбомы', artists: 'Артисты' };
   const f = S.filter;
-  $('#title').textContent = f ? f.label : titles[S.view];
   $('#sub').textContent = S.tracks.length ? `${list.length} ${plural(list.length, 'трек', 'трека', 'треков')}` : 'Библиотека пуста';
-  $('#chips').innerHTML = f ? `<button class="chip" id="clearFilter">${svg('close')}${esc(f.kind === 'album' ? 'Альбом' : 'Артист')}</button>` : '';
-  $$('.rail-item[data-view]').forEach((b) => b.classList.toggle('active', b.dataset.view === S.view));
-
-  const c = $('#content');
-  c.scrollTop = 0;
   if (!S.tracks.length) {
     c.innerHTML = `<div class="empty"><div class="blob">${svg('music')}</div><h3>Добавь свою музыку</h3>
-      <p>Выбери папку с треками или перетащи её в окно. Поддерживаются mp3, flac, ogg, opus, m4a, wav.</p>
+      <p>Выбери папку с треками, перетащи её в окно — или найди трек через поиск и скачай с YouTube.</p>
       <button class="btn" id="emptyAdd">${svg('folder')}Выбрать папку</button></div>`;
     return;
   }
-  if (S.view === 'albums' && !f) {
+  if (S.view === 'favs' && !list.length) {
+    c.innerHTML = `<div class="empty"><div class="blob">${svg('heart')}</div><h3>Пока пусто</h3><p>Нажми на сердечко в плеере, чтобы добавить трек в избранное.</p></div>`;
+  } else if (S.view === 'albums' && !f) {
     const groups = [...groupBy(list, albumKey)];
     c.innerHTML = `<div class="grid">${groups.map(([k, ts]) => `
       <button class="card" data-album="${esc(k)}" data-label="${esc(ts[0].album)}">
@@ -164,32 +158,145 @@ function render() {
         <div class="av">${esc([...name][0].toUpperCase())}</div>
         <div><b>${esc(name)}</b><span>${ts.length} ${plural(ts.length, 'трек', 'трека', 'треков')}</span></div></button>`).join('')}</div>`;
   } else {
-    c.innerHTML = list.length ? `<div class="list">${list.map((t, i) => `
-      <button class="row${t.path === S.queue[S.i] ? ' active' : ''}" data-i="${i}" data-path="${esc(t.path)}">
-        <div class="art">${esc([...t.title][0]?.toUpperCase() ?? '♪')}</div>
-        <div class="t"><b>${esc(t.title)}</b><span>${esc(t.artist)}</span></div>
-        <div class="al">${esc(t.album)}</div><div class="d">${fmt(t.duration)}</div></button>`).join('')}</div>`
-      : `<div class="empty"><h3>Ничего не найдено</h3><p>Попробуй другой запрос.</p></div>`;
+    c.innerHTML = `<div class="list">${list.map(rowHtml).join('')}</div>`;
   }
 }
 
+// ---------------------------------------------------------------- search: local + (optional) YouTube
+function renderSearch() {
+  const c = $('#content');
+  c.innerHTML = `<div id="loc"></div><div id="yt"></div>`;
+  renderLoc();
+  renderYt();
+}
+function renderLoc() {
+  const q = S.q.toLowerCase();
+  shown = S.tracks.filter((t) => matchQ(t, q));
+  $('#sub').textContent = `${shown.length} в библиотеке${S.set.yt ? ' · YouTube включён' : ''}`;
+  const el = $('#loc');
+  if (!el) return;
+  el.innerHTML = shown.length
+    ? `<h3 class="sec">${svg('music')}В библиотеке</h3><div class="list">${shown.slice(0, 80).map(rowHtml).join('')}</div>`
+    : S.set.yt ? '' : `<div class="empty"><h3>Ничего не найдено</h3><p>Включи поиск на YouTube в настройках, чтобы искать и в сети.</p></div>`;
+}
+const ytRowHtml = (v) => `
+  <div class="yrow" role="button" tabindex="0" data-id="${v.id}">
+    <div class="yth"><img src="${esc(v.thumb)}" alt="" loading="lazy"><span class="dur">${fmt(v.seconds)}</span></div>
+    <div class="t"><b>${esc(v.title)}</b><span>${esc(v.author)}</span></div>
+    <button class="ydl" data-id="${v.id}" tabindex="-1"></button></div>`;
+function renderYt() {
+  const el = $('#yt');
+  if (!el || !S.set.yt) return;
+  const y = S.yt;
+  let body = '';
+  if (y.status === 'loading' && !y.items.length) body = Array.from({ length: 4 }, () => '<div class="yrow sk"><div class="yth"></div><div class="t"><b></b><span></span></div></div>').join('');
+  else if (y.status === 'err') body = `<p class="hint">Не удалось выполнить поиск: ${esc(y.err)}</p>`;
+  else if (y.status === 'idle') body = S.q.length < 2 ? '<p class="hint">Введи хотя бы 2 символа</p>' : '';
+  else body = y.items.map(ytRowHtml).join('') || '<p class="hint">Ничего не нашлось</p>';
+  el.innerHTML = `<h3 class="sec">${svg('video')}YouTube</h3><div class="ylist${y.status === 'loading' ? ' stale' : ''}">${body}</div>`;
+  y.items.forEach((v) => paintDl(v.id));
+}
+function paintDl(id) {
+  const st = S.dl.get(id) ?? (ytIdx.has(id) ? { state: 'done' } : { state: 'idle' });
+  $$(`.ydl[data-id="${id}"]`).forEach((b) => {
+    b.dataset.st = st.state;
+    b.style.setProperty('--pct', st.pct ?? 0);
+    b.innerHTML = st.state === 'done' ? svg('play') : st.state === 'dl' ? `<span>${Math.round(st.pct ?? 0)}</span>` : svg(st.state === 'err' ? 'refresh' : 'download');
+    b.title = { idle: 'Скачать и слушать', dl: 'Загрузка…', done: 'Играть', err: 'Ошибка — повторить' }[st.state];
+  });
+}
+let ytTimer = 0, ytSeq = 0;
+function queueYt() {
+  clearTimeout(ytTimer);
+  if (!S.set.yt || S.q.length < 2) { ytSeq++; S.yt = { q: '', status: 'idle', items: [] }; renderYt(); return; }
+  S.yt = { ...S.yt, status: 'loading' };
+  renderYt();
+  const q = S.q;
+  ytTimer = setTimeout(async () => {
+    const seq = ++ytSeq;
+    const r = await window.api.ytSearch(q);
+    if (seq !== ytSeq) return;
+    S.yt = r.error ? { q, status: 'err', items: [], err: r.error } : { q, status: 'ok', items: r };
+    renderYt();
+  }, 550);
+}
+
+async function ytGet(id) {
+  const have = ytIdx.get(id);
+  if (have) return playQueue([have], 0);
+  if (S.dl.get(id)?.state === 'dl') return;
+  const item = S.yt.items.find((v) => v.id === id);
+  if (!item) return;
+  S.dl.set(id, { state: 'dl', pct: 0 });
+  paintDl(id);
+  try {
+    const t = await window.api.ytDownload({ id, title: item.title, author: item.author });
+    trackAdded(t);
+    if (!S.tracks.some((x) => x.path === t.path)) S.tracks.push(t);
+    sorted(S.tracks);
+    S.dl.set(id, { state: 'done' });
+    if (S.set.autoplay) playQueue([t], 0);
+  } catch (err) {
+    S.dl.set(id, { state: 'err' });
+    toast(`Не получилось скачать: ${String(err.message || err).replace(/^Error invoking remote method '[^']+': (Error: )?/, '')}`, 6000);
+  }
+  paintDl(id);
+}
+window.api.onYtProgress(({ id, pct }) => { const st = S.dl.get(id); if (st?.state === 'dl') { st.pct = pct; paintDl(id); } });
+window.api.onYtStatus((msg) => toast(msg, 8000));
+
+// ---------------------------------------------------------------- settings view
+const switchRow = (id, title, desc, on) => `<label class="srow"><span>${title}<small>${desc}</small></span><input class="switch" type="checkbox" id="${id}"${on ? ' checked' : ''}></label>`;
+function renderSettings(c) {
+  c.innerHTML = `<div class="setwrap">
+    <div class="panel">
+      <h4>Поиск</h4>
+      ${switchRow('setYt', 'Искать на YouTube', 'Выключено — только локальная библиотека. Включено — и YouTube, и локально.', S.set.yt)}
+      ${switchRow('setAuto', 'Играть сразу после загрузки', 'Скачанный трек запускается автоматически.', S.set.autoplay)}
+    </div>
+    <div class="panel">
+      <h4>Библиотека</h4>
+      <div class="frow"><span><b>Загрузки</b><small>${esc(S.dlDir)}</small></span><button class="mini" data-open="${esc(S.dlDir)}">${svg('folder')}Открыть</button></div>
+      ${S.folders.map((p, i) => `<div class="frow"><span><b>${esc(fileName(p) || p)}</b><small>${esc(p)}</small></span><button class="mini" data-rm="${i}" title="Убрать из библиотеки">${svg('trash')}</button></div>`).join('')}
+      <button class="tonal" id="setAdd">${svg('add')}<span class="lbl">Добавить папку</span></button>
+    </div>
+    <div class="panel">
+      <h4>Загрузчик</h4>
+      <div class="frow"><span><b>yt-dlp</b><small id="ytVer">Проверяю…</small></span><button class="mini" id="setUpd">${svg('refresh')}<span>Обновить</span></button></div>
+      <p class="hint">Скачивание с YouTube может противоречить условиям сервиса и авторским правам. Используй для контента, на который у тебя есть права.</p>
+    </div>
+    <div class="panel">
+      <h4>Оформление</h4>
+      <div class="seg" id="setTheme"><button data-t="dark">Тёмная</button><button data-t="light">Светлая</button></div>
+    </div>
+  </div>`;
+  $$('#setTheme button', c).forEach((b) => b.classList.toggle('on', b.dataset.t === root.dataset.theme));
+  // yt-dlp is a one-file exe that takes a moment to start, so the version fills in after the panel is already up
+  window.api.ytStatus().then((st) => {
+    const el = $('#ytVer');
+    if (!el) return;
+    el.textContent = st.installed ? `Версия ${st.version}` : 'Скачается автоматически при первой загрузке';
+    if (!st.installed) $('#setUpd span').textContent = 'Установить';
+  });
+}
+const saveSet = () => store.set('settings', S.set);
+
 // ---------------------------------------------------------------- scanning
 let renderTimer = 0;
-const renderSoon = () => { clearTimeout(renderTimer); renderTimer = setTimeout(render, 160); };
+const renderSoon = () => { clearTimeout(renderTimer); renderTimer = setTimeout(() => { if (!S.q && S.view !== 'eq' && S.view !== 'settings') render(true); }, 200); };
 window.api.onBatch((batch) => {
-  for (const t of batch) { S.tracks.push(t); byPath.set(t.path, t); }
+  for (const t of batch) { S.tracks.push(t); trackAdded(t); }
   $('#sub').textContent = `Сканирую… ${S.tracks.length}`;
   renderSoon();
 });
 async function rescan() {
-  if (!S.folders.length) return render();
-  S.tracks = []; byPath.clear();
-  await window.api.scan(S.folders);
+  S.tracks = []; byPath.clear(); ytIdx.clear();
+  await window.api.scan([...new Set([S.dlDir, ...S.folders].filter(Boolean))]);
   sorted(S.tracks);
   render();
 }
 async function addFolders(paths) {
-  const added = paths.filter((p) => p && !S.folders.includes(p));
+  const added = paths.filter((p) => p && !S.folders.includes(p) && p !== S.dlDir);
   if (!added.length) return;
   S.folders.push(...added);
   store.set('folders', S.folders);
@@ -208,17 +315,21 @@ async function load() {
   if (!t) return;
   const token = ++loadToken;
   audio.src = t.url;
+  audio.playbackRate = SPEEDS[speedI];
   audio.play().catch(() => {});
   $('#nTitle').textContent = t.title;
   $('#nArtist').textContent = `${t.artist} · ${t.album}`;
+  $('#fav').classList.toggle('on', S.favs.has(t.path));
   $$('.row.active').forEach((r) => r.classList.remove('active'));
   $$('.row').find((r) => r.dataset.path === t.path)?.classList.add('active');
+  renderQueue();
+  loadLyrics(t);
   const src = await getCover(t);
   if (token !== loadToken) return;
   const img = $('#coverImg');
   img.classList.toggle('on', !!src);
   if (src) img.src = src;
-  setPalette((src && (await paletteFrom(src))) || { h: hueOf(t.album), c: 0.09 });
+  setPalette((src && (await paletteFrom(src))) || { h: hueOf(t.album + t.title), c: 0.09 });
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({ title: t.title, artist: t.artist, album: t.album, artwork: src ? [{ src }] : [] });
   }
@@ -239,6 +350,22 @@ function step(dir) {
   load();
 }
 const toggle = () => { if (S.i < 0) { if (shown.length) playQueue(shown, 0); return; } audio.paused ? audio.play() : audio.pause(); };
+function enqueue(path) {
+  if (!byPath.has(path)) return;
+  if (S.i < 0) { S.queue = [path]; S.i = 0; load(); return; }
+  S.queue.push(path);
+  renderQueue();
+  toast('Добавлено в очередь', 1800);
+}
+function renderQueue() {
+  const el = $('#queue');
+  if (!S.queue.length) { el.innerHTML = `<div class="lystate">${svg('music')}<p>Очередь пуста</p></div>`; return; }
+  el.innerHTML = S.queue.map((p, i) => {
+    const t = byPath.get(p);
+    return t ? `<button class="qrow${i === S.i ? ' active' : ''}" data-qi="${i}"><span class="qn">${i === S.i ? svg('play') : i + 1}</span><span class="t"><b>${esc(t.title)}</b><span>${esc(t.artist)}</span></span><span class="d">${fmt(t.duration)}</span></button>` : '';
+  }).join('');
+  $('.qrow.active', el)?.scrollIntoView({ block: 'center' });
+}
 
 audio.addEventListener('ended', () => { if (S.repeat === 2) { audio.currentTime = 0; audio.play(); } else step(1); });
 audio.addEventListener('play', syncPlay);
@@ -255,34 +382,52 @@ if ('mediaSession' in navigator) {
   navigator.mediaSession.setActionHandler('nexttrack', () => step(1));
 }
 
-// ---------------------------------------------------------------- wavy progress + morphing cover
-const wave = $('#wave');
-const cover = $('#cover');
-const probes = {};
-for (const [k, v] of Object.entries({ primary: '--primary', track: '--surface-highest' })) {
-  const el = document.createElement('i');
-  el.style.cssText = `position:absolute;visibility:hidden;color:var(${v})`;
-  document.body.append(el);
-  probes[k] = el;
-}
-let amp = 0, coverAmp = -1, seeking = false, seekP = 0;
-function frame(now) {
-  requestAnimationFrame(frame);
-  const playing = !audio.paused;
-  amp += ((playing ? 1 : 0) - amp) * 0.08;
+// ---------------------------------------------------------------- speed + sleep timer
+const SPEEDS = [1, 1.25, 1.5, 0.75];
+let speedI = 0;
+$('#speed').onclick = () => {
+  speedI = (speedI + 1) % SPEEDS.length;
+  audio.playbackRate = SPEEDS[speedI];
+  $('#speed').textContent = `${SPEEDS[speedI]}×`;
+};
+const SLEEPS = [0, 15, 30, 60];
+let sleepI = 0, sleepEnd = 0, sleepTick = 0;
+$('#sleep').onclick = () => {
+  sleepI = (sleepI + 1) % SLEEPS.length;
+  clearInterval(sleepTick);
+  sleepEnd = SLEEPS[sleepI] ? Date.now() + SLEEPS[sleepI] * 60000 : 0;
+  const paint = () => { $('#sleepTxt').textContent = sleepEnd ? `${Math.ceil((sleepEnd - Date.now()) / 60000)} мин` : 'Сон'; $('#sleep').classList.toggle('on', !!sleepEnd); };
+  paint();
+  if (!sleepEnd) return;
+  sleepTick = setInterval(() => {
+    if (Date.now() < sleepEnd) return paint();
+    clearInterval(sleepTick); sleepEnd = 0; sleepI = 0; paint();
+    const v0 = audio.volume; let k = 0;
+    const fade = setInterval(() => { k++; audio.volume = Math.max(0, v0 * (1 - k / 30)); if (k >= 30) { clearInterval(fade); audio.pause(); audio.volume = v0; } }, 100);
+  }, 1000);
+};
 
+// ---------------------------------------------------------------- frame loop: wavy bar, wavy ring around the cover, morphing cover, EQ spectrum, lyrics
+const wave = $('#wave'), ring = $('#ring'), wrap = $('#coverWrap'), cover = $('#cover');
+let amp = 0, coverAmp = -1, seeking = false, seekP = 0, seekSrc = '';
+const progress = () => (seeking ? seekP : audio.duration ? audio.currentTime / audio.duration : 0);
+
+function fit(cv, w, h) {
   const dpr = devicePixelRatio || 1;
-  const w = wave.clientWidth, h = wave.clientHeight;
-  if (wave.width !== Math.round(w * dpr)) { wave.width = Math.round(w * dpr); wave.height = Math.round(h * dpr); }
-  const g = wave.getContext('2d');
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
-  const p = seeking ? seekP : audio.duration ? audio.currentTime / audio.duration : 0;
-  const px = 4 + (w - 8) * p, mid = h / 2;
-  const primary = getComputedStyle(probes.primary).color;
+  return g;
+}
+
+function drawBar(now, p) {
+  const w = wave.clientWidth, h = wave.clientHeight;
+  const g = fit(wave, w, h);
+  const px = 4 + (w - 8) * p, mid = h / 2, primary = cssColor('--primary');
   g.lineCap = 'round'; g.lineWidth = 4;
   if (px + 8 < w - 4) {
-    g.strokeStyle = getComputedStyle(probes.track).color;
+    g.strokeStyle = cssColor('--surface-highest');
     g.beginPath(); g.moveTo(px + 8, mid); g.lineTo(w - 4, mid); g.stroke();
   }
   g.strokeStyle = primary;
@@ -295,8 +440,45 @@ function frame(now) {
   g.stroke();
   g.fillStyle = primary;
   g.beginPath(); g.roundRect(px - 3, mid - 13, 6, 26, 3); g.fill();
+}
 
-  const target = playing ? 0.06 : 0.0;
+const RING_LOBES = 30; // integer so the wave closes seamlessly on a full circle
+function drawRing(now, p) {
+  const size = wrap.clientWidth;
+  if (!size) return;
+  const g = fit(ring, size, size);
+  const c = size / 2, R = size * 0.462, primary = cssColor('--primary');
+  g.lineCap = 'round'; g.lineWidth = Math.max(3, size * 0.012);
+  g.strokeStyle = cssColor('--surface-highest');
+  g.beginPath(); g.arc(c, c, R, 0, Math.PI * 2); g.stroke();
+  if (p <= 0.001) return;
+  const A = size * 0.011 * amp, phase = now / 380, a0 = -Math.PI / 2, span = Math.PI * 2 * p;
+  g.strokeStyle = primary;
+  g.beginPath();
+  const steps = Math.max(8, Math.ceil(span * 60));
+  for (let i = 0; i <= steps; i++) {
+    const th = a0 + (span * i) / steps;
+    const r = R + Math.sin((th - a0) * RING_LOBES - phase) * A * Math.min(1, i / 12, (steps - i) / 12 + 0.25);
+    const x = c + Math.cos(th) * r, y = c + Math.sin(th) * r;
+    i ? g.lineTo(x, y) : g.moveTo(x, y);
+  }
+  g.stroke();
+  const te = a0 + span;
+  g.fillStyle = primary;
+  g.beginPath(); g.arc(c + Math.cos(te) * R, c + Math.sin(te) * R, g.lineWidth * 1.9, 0, Math.PI * 2); g.fill();
+}
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  const playing = !audio.paused;
+  amp += ((playing ? 1 : 0) - amp) * 0.08;
+  const p = progress();
+  drawBar(now, p);
+  if (document.body.dataset.tab === 'now') drawRing(now, p);
+  if (document.body.dataset.tab === 'lyrics') tickLyrics(audio.currentTime);
+  if (S.view === 'eq' && !S.q) drawEqViz();
+
+  const target = playing ? 0.06 : 0;
   const next = coverAmp < 0 ? target : coverAmp + (target - coverAmp) * 0.07;
   if (Math.abs(next - coverAmp) > 0.0004) { coverAmp = next; cover.style.clipPath = cookie(coverAmp); }
 
@@ -307,10 +489,25 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 
-const seekFrom = (e) => { const r = wave.getBoundingClientRect(); seekP = Math.min(1, Math.max(0, (e.clientX - r.left - 4) / (r.width - 8))); $('#tCur').textContent = fmt(seekP * audio.duration); };
-wave.addEventListener('pointerdown', (e) => { if (!audio.duration) return; seeking = true; wave.setPointerCapture(e.pointerId); seekFrom(e); });
-wave.addEventListener('pointermove', (e) => { if (seeking) seekFrom(e); });
-wave.addEventListener('pointerup', () => { if (!seeking) return; seeking = false; audio.currentTime = seekP * audio.duration; });
+// seeking: linear bar, or drag around the ring
+const seekBar = (e) => { const r = wave.getBoundingClientRect(); seekP = clamp((e.clientX - r.left - 4) / (r.width - 8), 0, 1); };
+const seekRing = (e) => { const r = ring.getBoundingClientRect(); let a = Math.atan2(e.clientY - r.top - r.height / 2, e.clientX - r.left - r.width / 2) + Math.PI / 2; if (a < 0) a += Math.PI * 2; seekP = a / (Math.PI * 2); };
+const onRing = (e) => { const r = ring.getBoundingClientRect(); const d = Math.hypot(e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2); return Math.abs(d - r.width * 0.462) < r.width * 0.07; };
+function seekStart(src, fn) {
+  return (e) => {
+    if (!audio.duration || (src === 'ring' && !onRing(e))) return;
+    seeking = true; seekSrc = src; e.currentTarget.setPointerCapture(e.pointerId); fn(e);
+    $('#tCur').textContent = fmt(seekP * audio.duration);
+  };
+}
+const seekMove = (fn) => (e) => { if (seeking) { fn(e); $('#tCur').textContent = fmt(seekP * audio.duration); } };
+const seekEnd = () => { if (!seeking) return; seeking = false; audio.currentTime = seekP * audio.duration; };
+wave.addEventListener('pointerdown', seekStart('bar', seekBar));
+wave.addEventListener('pointermove', seekMove(seekBar));
+wave.addEventListener('pointerup', seekEnd);
+ring.addEventListener('pointerdown', seekStart('ring', seekRing));
+ring.addEventListener('pointermove', (e) => { if (seeking) seekMove(seekRing)(e); else ring.style.cursor = onRing(e) ? 'pointer' : 'default'; });
+ring.addEventListener('pointerup', seekEnd);
 
 // ---------------------------------------------------------------- UI wiring
 $('#play').onclick = toggle;
@@ -321,37 +518,91 @@ $('#repeat').onclick = (e) => {
   S.repeat = (S.repeat + 1) % 3;
   e.currentTarget.classList.toggle('on', S.repeat > 0);
   e.currentTarget.title = ['Повтор выключен', 'Повтор всех', 'Повтор трека'][S.repeat];
+  e.currentTarget.innerHTML = svg(S.repeat === 2 ? 'repeatOne' : 'repeat');
+};
+$('#fav').onclick = (e) => {
+  const p = S.queue[S.i];
+  if (!p) return;
+  S.favs.has(p) ? S.favs.delete(p) : S.favs.add(p);
+  store.set('favs', [...S.favs]);
+  e.currentTarget.classList.toggle('on', S.favs.has(p));
+  if (S.view === 'favs' && !S.q) render(true);
 };
 const vol = $('#vol');
 const syncVol = () => vol.style.setProperty('--p', `${vol.value * 100}%`);
 vol.value = audio.volume; syncVol();
 vol.oninput = () => { audio.volume = +vol.value; syncVol(); store.set('volume', audio.volume); };
 
-$('#add').onclick = async () => { const p = await window.api.pickFolder(); if (p) addFolders([p]); };
-$('#q').oninput = (e) => { S.q = e.target.value.trim(); render(); };
-$$('.rail-item[data-view]').forEach((b) => (b.onclick = () => { S.view = b.dataset.view; S.filter = null; render(); }));
+$$('.tab').forEach((b) => (b.onclick = () => {
+  document.body.dataset.tab = b.dataset.tab;
+  $$('.tab').forEach((x) => x.classList.toggle('on', x === b));
+  if (b.dataset.tab === 'queue') renderQueue();
+}));
 
-$('#content').addEventListener('click', async (e) => {
-  const row = e.target.closest('.row');
+const pickFolder = async () => { const p = await window.api.pickFolder(); if (p) addFolders([p]); };
+$('#add').onclick = pickFolder;
+$('#q').oninput = (e) => {
+  S.q = e.target.value.trim();
+  if (!S.q) { ytSeq++; S.yt = { q: '', status: 'idle', items: [] }; return render(); }
+  if (!$('#loc')) render(); else renderLoc();
+  queueYt();
+};
+$$('.rail-item[data-view]').forEach((b) => (b.onclick = () => {
+  S.view = b.dataset.view; S.filter = null;
+  if (S.q) { S.q = ''; $('#q').value = ''; ytSeq++; }
+  render();
+}));
+
+const activate = (e, handler) => { if (e.type === 'keydown' && e.key !== 'Enter') return; handler(); };
+$('#content').addEventListener('click', handleContent);
+$('#content').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('.row,.yrow')) handleContent(e); });
+async function handleContent(e) {
+  const t = e.target;
+  const q = t.closest('.rowq');
+  if (q) { e.stopPropagation(); return enqueue(q.dataset.q); }
+  const row = t.closest('.row');
   if (row) return playQueue(shown, +row.dataset.i);
-  const card = e.target.closest('.card');
+  const yrow = t.closest('.yrow');
+  if (yrow && yrow.dataset.id) return ytGet(yrow.dataset.id);
+  const card = t.closest('.card[data-album]');
   if (card) { S.filter = { kind: 'album', value: card.dataset.album, label: card.dataset.label }; S.view = 'tracks'; return render(); }
-  const ar = e.target.closest('.artist');
+  const ar = t.closest('.artist');
   if (ar) { S.filter = { kind: 'artist', value: ar.dataset.artist, label: ar.dataset.artist }; S.view = 'tracks'; return render(); }
-  if (e.target.closest('#emptyAdd')) { const p = await window.api.pickFolder(); if (p) addFolders([p]); }
+  if (t.closest('#emptyAdd') || t.closest('#setAdd')) return pickFolder();
+  const open = t.closest('[data-open]');
+  if (open) return window.api.openDir(open.dataset.open);
+  const rm = t.closest('[data-rm]');
+  if (rm) { S.folders.splice(+rm.dataset.rm, 1); store.set('folders', S.folders); await rescan(); return; }
+  if (t.closest('#setUpd')) {
+    const btn = t.closest('#setUpd'); btn.disabled = true;
+    try { const v = await window.api.ytUpdate(); $('#ytVer').textContent = `Версия ${v}`; toast('yt-dlp обновлён'); } catch (err) { toast(`Не удалось обновить: ${err.message || err}`, 6000); }
+    btn.disabled = false; return;
+  }
+  const th = t.closest('#setTheme button');
+  if (th) { applyTheme(th.dataset.t); $$('#setTheme button').forEach((b) => b.classList.toggle('on', b === th)); }
+}
+$('#content').addEventListener('change', (e) => {
+  if (e.target.id === 'setYt') { S.set.yt = e.target.checked; saveSet(); if (!S.set.yt) { ytSeq++; S.yt = { q: '', status: 'idle', items: [] }; } toast(S.set.yt ? 'Поиск на YouTube включён' : 'Только локальный поиск', 2000); }
+  if (e.target.id === 'setAuto') { S.set.autoplay = e.target.checked; saveSet(); }
 });
 $('#chips').addEventListener('click', (e) => { if (e.target.closest('#clearFilter')) { S.filter = null; render(); } });
+$('#queue').addEventListener('click', (e) => {
+  const r = e.target.closest('.qrow');
+  if (r) { S.i = +r.dataset.qi; load(); }
+});
 
-const themeBtn = $('#theme');
-const applyTheme = (t) => { root.dataset.theme = t; store.set('theme', t); };
+const applyTheme = (t) => {
+  root.dataset.theme = t; store.set('theme', t);
+  window.api.setTitleSymbols?.(t === 'dark' ? '#e6e0ee' : '#2a2433');
+};
 applyTheme(store.get('theme', 'dark'));
-themeBtn.onclick = () => applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
 
 addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' && e.target.type !== 'range') return;
-  if (e.code === 'Space') { e.preventDefault(); toggle(); }
+  if (e.target.tagName === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
+  if (e.code === 'Space' && !e.target.closest('.row,.yrow,button')) { e.preventDefault(); toggle(); }
   if (e.code === 'ArrowRight' && e.ctrlKey) step(1);
   if (e.code === 'ArrowLeft' && e.ctrlKey) $('#prev').click();
+  if (e.key === '/' && e.target.tagName !== 'INPUT') { e.preventDefault(); $('#q').focus(); }
 });
 addEventListener('dragover', (e) => e.preventDefault());
 addEventListener('drop', (e) => {
@@ -359,5 +610,11 @@ addEventListener('drop', (e) => {
   addFolders([...e.dataTransfer.files].map((f) => window.api.pathOf(f)));
 });
 
-syncPlay();
-rescan();
+// ---------------------------------------------------------------- boot
+(async () => {
+  syncPlay();
+  S.dlDir = await window.api.downloadDir();
+  renderQueue();
+  await rescan();
+  $('#q').focus();
+})();

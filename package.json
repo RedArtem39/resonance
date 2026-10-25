@@ -9,6 +9,7 @@
   "license": "MIT",
   "dependencies": {
     "electron": "^45.0.0",
-    "music-metadata": "^12.3.0"
+    "music-metadata": "^12.3.0",
+    "yt-search": "^2.13.1"
   }
 }
