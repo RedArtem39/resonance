@@ -19,6 +19,7 @@
   --on-primary-container: oklch(91% calc(var(--c) * .5) var(--h));
   --secondary-container: oklch(34% calc(var(--c) * .4) var(--h));
   --on-secondary-container: oklch(90% calc(var(--c) * .3) var(--h));
+  --tertiary: oklch(80% calc(var(--c) * .9) calc(var(--h) + 60));
   --tertiary-container: oklch(36% calc(var(--c) * .8) calc(var(--h) + 60));
   --on-tertiary-container: oklch(91% calc(var(--c) * .5) calc(var(--h) + 60));
   --surface: oklch(16.5% calc(var(--c) * .22) var(--h));
@@ -39,6 +40,7 @@
   --on-primary-container: oklch(24% calc(var(--c) * .8) var(--h));
   --secondary-container: oklch(90% calc(var(--c) * .3) var(--h));
   --on-secondary-container: oklch(26% calc(var(--c) * .4) var(--h));
+  --tertiary: oklch(48% calc(var(--c) * .9) calc(var(--h) + 60));
   --tertiary-container: oklch(90% calc(var(--c) * .6) calc(var(--h) + 60));
   --on-tertiary-container: oklch(26% calc(var(--c) * .7) calc(var(--h) + 60));
   --surface: oklch(97.5% calc(var(--c) * .12) var(--h));
@@ -196,6 +198,10 @@ body[data-tab='now'] .p-now, body[data-tab='lyrics'] .p-lyrics, body[data-tab='q
 .cover .ph { transform: scale(2.6); }
 
 .dock { flex: none; }
+.dock-low { position: relative; }
+#viz { position: absolute; left: -12px; right: -12px; top: -150px; bottom: -8px; width: calc(100% + 24px); height: calc(100% + 158px); pointer-events: none; opacity: 0; transition: opacity .45s var(--smooth); z-index: 0; -webkit-mask-image: linear-gradient(to top, #000 45%, transparent); mask-image: linear-gradient(to top, #000 45%, transparent); }
+.dock-low.viz-on #viz { opacity: 1; }
+.dock-low > .controls, .dock-low > .vol { position: relative; z-index: 1; }
 .meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .mt { flex: 1; min-width: 0; }
 .meta h2 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -221,6 +227,7 @@ body[data-tab='now'] .p-now, body[data-tab='lyrics'] .p-lyrics, body[data-tab='q
 .vol { display: flex; align-items: center; gap: 10px; margin-top: 8px; color: var(--on-surface-var); }
 .mini { height: 36px; padding: 0 14px; border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; background: var(--surface-highest); color: var(--on-surface-var); font-size: 13px; font-weight: 650; white-space: nowrap; transition: border-radius .35s var(--spring), transform .35s var(--spring), background .2s; }
 .mini svg { width: 18px; height: 18px; }
+.mini.ico { width: 36px; padding: 0; justify-content: center; }
 .mini:hover { border-radius: 18px; }
 .mini:active { transform: scale(.92); }
 .mini.on { background: var(--secondary-container); color: var(--on-secondary-container); }

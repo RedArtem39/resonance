@@ -203,11 +203,9 @@ function renderEq(c) {
   paintAll();
 }
 
-// ---------------------------------------------------------------- spectrum + response curve (called from the main frame loop)
+// ---------------------------------------------------------------- response curve + dB grid (called from the main frame loop)
 const SPEC_N = 140;
 const specFreq = Array.from({ length: SPEC_N }, (_, i) => 20 * 1000 ** (i / (SPEC_N - 1)));
-const specVal = new Float32Array(SPEC_N);
-const bins = new Uint8Array(analyser.frequencyBinCount);
 const respFreq = Float32Array.from(specFreq);
 const respMag = new Float32Array(SPEC_N), respPh = new Float32Array(SPEC_N), respDb = new Float32Array(SPEC_N);
 
@@ -240,33 +238,6 @@ function drawEqViz() {
     g.beginPath(); g.moveTo(0, Math.round(yOfDb(db)) + 0.5); g.lineTo(w, Math.round(yOfDb(db)) + 0.5); g.stroke();
   }
   g.setLineDash([]);
-
-  analyser.getByteFrequencyData(bins);
-  const hz = AC.sampleRate / analyser.fftSize;
-  for (let i = 0; i < SPEC_N; i++) {
-    const f = specFreq[i];
-    const lo = Math.floor(specFreq[Math.max(0, i - 1)] / hz), hi = Math.ceil(specFreq[Math.min(SPEC_N - 1, i + 1)] / hz);
-    let v;
-    if (hi - lo <= 2) { // low end: fewer bins than points, so interpolate instead of stair-stepping
-      const fb = f / hz, i0 = Math.floor(fb), fr = fb - i0;
-      v = ((bins[i0] ?? 0) * (1 - fr) + (bins[i0 + 1] ?? 0) * fr) / 255;
-    } else {
-      let m = 0, sum = 0; for (let k = Math.max(1, lo); k < hi; k++) { m = Math.max(m, bins[k]); sum += bins[k]; }
-      v = (m * 0.6 + (sum / (hi - lo)) * 0.4) / 255;
-    }
-    specVal[i] += (v - specVal[i]) * (v > specVal[i] ? 0.55 : 0.14);
-  }
-  // light 3-tap smoothing so the silhouette is round, not jagged
-  const sm = (i) => ((specVal[i - 1] ?? specVal[i]) + specVal[i] * 2 + (specVal[i + 1] ?? specVal[i])) / 4;
-  g.beginPath();
-  g.moveTo(xOf(specFreq[0]), h);
-  for (let i = 0; i < SPEC_N; i++) g.lineTo(xOf(specFreq[i]), h - Math.min(1, sm(i) ** 0.85 * 1.2) * h * 0.95);
-  g.lineTo(xOf(specFreq[SPEC_N - 1]), h);
-  g.closePath();
-  const grad = g.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0, primary); grad.addColorStop(1, 'transparent');
-  g.globalAlpha = 0.16; g.fillStyle = primary; g.fill();
-  g.globalAlpha = 0.5; g.fillStyle = grad; g.fill();
 
   // target response curve, drawn on top of the sliders
   g.globalAlpha = 1; g.strokeStyle = primary; g.lineWidth = 3.5; g.lineJoin = 'round'; g.lineCap = 'round';

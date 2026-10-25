@@ -67,17 +67,21 @@
         <canvas id="wave"></canvas>
         <div class="times"><span id="tCur">0:00</span><span id="tDur">0:00</span></div>
       </div>
-      <div class="controls">
-        <button class="ctl toggle" id="shuffle" title="Перемешать"><i data-i="shuffle"></i></button>
-        <button class="ctl" id="prev" title="Назад"><i data-i="prev"></i></button>
-        <button class="play" id="play" title="Играть"><i data-i="play" id="playIcon"></i></button>
-        <button class="ctl" id="next" title="Вперёд"><i data-i="next"></i></button>
-        <button class="ctl toggle" id="repeat" title="Повтор"><i data-i="repeat"></i></button>
-      </div>
-      <div class="vol">
-        <button class="mini" id="speed" title="Скорость">1×</button>
-        <button class="mini" id="sleep" title="Таймер сна"><i data-i="timer"></i><span id="sleepTxt">Сон</span></button>
-        <i data-i="volume"></i><input id="vol" type="range" min="0" max="1" step="0.01" value="0.8">
+      <div class="dock-low">
+        <canvas id="viz"></canvas>
+        <div class="controls">
+          <button class="ctl toggle" id="shuffle" title="Перемешать"><i data-i="shuffle"></i></button>
+          <button class="ctl" id="prev" title="Назад"><i data-i="prev"></i></button>
+          <button class="play" id="play" title="Играть"><i data-i="play" id="playIcon"></i></button>
+          <button class="ctl" id="next" title="Вперёд"><i data-i="next"></i></button>
+          <button class="ctl toggle" id="repeat" title="Повтор"><i data-i="repeat"></i></button>
+        </div>
+        <div class="vol">
+          <button class="mini" id="speed" title="Скорость">1×</button>
+          <button class="mini" id="sleep" title="Таймер сна"><i data-i="timer"></i><span id="sleepTxt">Сон</span></button>
+          <button class="mini ico" id="vizBtn" title="Визуализатор"><i data-i="eq"></i></button>
+          <i data-i="volume"></i><input id="vol" type="range" min="0" max="1" step="0.01" value="0.8">
+        </div>
       </div>
     </div>
   </aside>
@@ -85,6 +89,7 @@
   <script src="util.js"></script>
   <script src="eq.js"></script>
   <script src="lyrics.js"></script>
+  <script src="viz.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

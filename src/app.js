@@ -477,6 +477,7 @@ function frame(now) {
   if (document.body.dataset.tab === 'now') drawRing(now, p);
   if (document.body.dataset.tab === 'lyrics') tickLyrics(audio.currentTime);
   if (S.view === 'eq' && !S.q) drawEqViz();
+  drawViz(now);
 
   const target = playing ? 0.06 : 0;
   const next = coverAmp < 0 ? target : coverAmp + (target - coverAmp) * 0.07;

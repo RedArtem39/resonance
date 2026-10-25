@@ -83,9 +83,10 @@ async function readTrack(f) {
   } catch { /* keep filename-based fallback */ }
   const side = await readSidecar(f);
   if (side) {
-    t.title = side.title || t.title;
-    t.artist = side.artist || t.artist;
-    t.albumArtist = side.artist || t.albumArtist;
+    const meta = side.ytTitle ? splitMeta(side.ytTitle, side.ytAuthor || '') : side;
+    t.title = meta.title || t.title;
+    t.artist = meta.artist || t.artist;
+    t.albumArtist = meta.artist || t.albumArtist;
     t.album = side.album || (t.album === 'Без альбома' ? 'YouTube' : t.album);
   }
   return t;
@@ -220,11 +221,18 @@ ipcMain.handle('yt:update', async (e) => {
 });
 
 const cleanTitle = (s) => s.replace(/\s*[(\[](official|lyrics?|lyric video|audio|video|music video|hd|hq|4k|visuali[sz]er|remaster(ed)?)[^)\]]*[)\]]/gi, '').trim();
+// Split "Artist - Title" on the first dash that is NOT inside brackets, so "Song (Hardstyle - Sped Up)" stays whole.
 function splitMeta(title, author) {
   const t = cleanTitle(title);
-  const m = t.match(/^(.{1,60}?)\s+[-–—]\s+(.+)$/);
-  const artist = (m ? m[1] : author).replace(/\s*-\s*Topic$|VEVO$/i, '').trim();
-  return { artist, title: m ? m[2].trim() : t };
+  let depth = 0, cut = -1;
+  for (let i = 1; i < t.length - 1; i++) {
+    const ch = t[i];
+    if ('([{'.includes(ch)) depth++;
+    else if (')]}'.includes(ch)) depth = Math.max(0, depth - 1);
+    else if (!depth && '-–—'.includes(ch) && t[i - 1] === ' ' && t[i + 1] === ' ') { cut = i; break; }
+  }
+  const artist = (cut > 0 ? t.slice(0, cut) : author).replace(/\s*-\s*Topic$|VEVO$/i, '').trim();
+  return { artist, title: cut > 0 ? t.slice(cut + 1).trim() : t };
 }
 
 ipcMain.handle('yt:download', async (e, { id, title, author }) => {
@@ -245,7 +253,7 @@ ipcMain.handle('yt:download', async (e, { id, title, author }) => {
   const file = (await fs.readdir(dir)).find((n) => n.startsWith(id + '.') && EXT.has(path.extname(n).toLowerCase()));
   if (!file) throw new Error('Файл не найден после загрузки');
   const full = path.join(dir, file);
-  await fs.writeFile(path.join(dir, id + '.meta.json'), JSON.stringify({ ...splitMeta(title, author), album: 'YouTube', source: `https://www.youtube.com/watch?v=${id}` }));
+  await fs.writeFile(path.join(dir, id + '.meta.json'), JSON.stringify({ ...splitMeta(title, author), ytTitle: title, ytAuthor: author, album: 'YouTube', source: `https://www.youtube.com/watch?v=${id}` }));
   return readTrack(full);
 });
 
