@@ -29,7 +29,7 @@
 - Material 3 Expressive: tonal surfaces, large shapes, shape-morphing buttons and spring motion.
 - The whole palette is generated from the cover art of the current track (OKLCH tonal palette) and changes smoothly between tracks. Dark and light themes.
 - A wavy progress ring around the cover that fills as the track plays (drag it to seek), plus a wavy progress bar.
-- An optional visualizer behind the transport controls (toggle button next to the sleep timer).
+- An optional visualizer behind the transport controls in two looks — rounded bars, or one continuous soft wave. One button next to the sleep timer cycles off / bars / solid. Heavily smoothed in time and space, so it flows instead of twitching.
 - The window header is hidden until you move the pointer to the top edge, then slides in over the UI without moving anything.
 
 **Sound**
