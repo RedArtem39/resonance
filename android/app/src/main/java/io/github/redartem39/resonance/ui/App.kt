@@ -191,7 +191,7 @@ private fun Rail(vm: AppVm, pickFolder: () -> Unit, modifier: Modifier) {
 @Composable
 private fun BottomNav(vm: AppVm) {
     val pal = LocalPal.current
-    Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+    Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 6.dp, bottom = 14.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
         (NAV + Triple(View.Settings, "settings", "Настройки")).forEach { (v, i, l) -> NavItem(vm, v, i, l, Modifier.weight(1f).padding(vertical = 4.dp), size = 10.5f) }
     }
 }

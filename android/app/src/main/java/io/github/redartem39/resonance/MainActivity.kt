@@ -8,6 +8,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import io.github.redartem39.resonance.ui.ResonanceRoot
 
 class MainActivity : ComponentActivity() {
@@ -26,6 +29,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         if (Build.VERSION.SDK_INT >= 33) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        hideNavBar()
         setContent { ResonanceRoot(vm, { folderPicker.launch(null) }, { cookiePicker.launch(arrayOf("*/*")) }) }
+    }
+
+    // the system navigation bar is hidden: the app draws behind it, a swipe from the bottom edge brings it back for a moment
+    private fun hideNavBar() {
+        val c = WindowCompat.getInsetsController(window, window.decorView)
+        c.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        c.hide(WindowInsetsCompat.Type.navigationBars())
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideNavBar()
     }
 }
