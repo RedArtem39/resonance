@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import io.github.redartem39.resonance.AppVm
 import io.github.redartem39.resonance.View
+import io.github.redartem39.resonance.data.key
 import io.github.redartem39.resonance.data.plural
 
 @Composable
@@ -248,15 +249,16 @@ private fun MainPane(vm: AppVm, wide: Boolean, pickFolder: () -> Unit, pickCooki
 private fun Header(vm: AppVm, wide: Boolean, searching: Boolean, pickFolder: () -> Unit) {
     val pal = LocalPal.current
     val title = if (searching) "Поиск" else vm.filter?.label ?: vm.view.title
-    val list = if (searching) vm.currentShown else vm.currentShown
+    val q = vm.query.trim().lowercase()
+    val count = if (searching) vm.tracks.count { "${it.title} ${it.artist} ${it.album}".lowercase().contains(q) } else visibleTracks(vm).size
     val sub = when {
-        searching -> "${vm.currentShown.size} в библиотеке${if (vm.settings.yt) " · YouTube включён" else ""}"
+        searching -> "$count в библиотеке${if (vm.settings.yt) " · YouTube включён" else ""}"
         vm.view == View.Eq -> "10 полос · 31 Гц – 16 кГц"
         vm.view == View.Settings -> ""
-        vm.scanning && vm.tracks.isEmpty() -> "Сканирую… ${vm.scanCount}"
         vm.scanning -> "Сканирую… ${vm.scanCount}"
         vm.tracks.isEmpty() -> "Библиотека пуста"
-        else -> "${vm.currentShown.size} ${plural(vm.currentShown.size, "трек", "трека", "треков")}"
+        vm.view == View.Albums -> vm.tracks.map { it.key() }.toSet().size.let { "$it ${plural(it, "альбом", "альбома", "альбомов")}" }
+        else -> "$count ${plural(count, "трек", "трека", "треков")}"
     }
     if (wide) {
         Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 18.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -272,7 +274,6 @@ private fun Header(vm: AppVm, wide: Boolean, searching: Boolean, pickFolder: () 
             SearchField(vm, Modifier.fillMaxWidth())
         }
     }
-    @Suppress("UNUSED_VARIABLE") val unused = list
 }
 
 @Composable
