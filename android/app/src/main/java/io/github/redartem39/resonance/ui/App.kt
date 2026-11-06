@@ -11,11 +11,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.launch
@@ -48,6 +50,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -124,34 +127,26 @@ private fun CompactLayout(vm: AppVm, pickFolder: () -> Unit, pickCookies: () -> 
             enter = slideInVertically(tween(420, easing = SmoothEasing)) { it } + fadeIn(tween(250)),
             exit = slideOutVertically(tween(320, easing = SmoothEasing)) { it } + fadeOut(tween(250)),
         ) {
-            // swipe down anywhere that is not a scrolling list or a slider: the panel follows the finger and closes past a threshold
-            val dragY = remember { androidx.compose.animation.core.Animatable(0f) }
+            // swipe down anywhere that is not a list or a slider: the full-screen player follows the finger (synchronously, no lag),
+            // then glides on with the release velocity and collapses into the mini player
+            var dragY by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+            var h by remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
             val scope = androidx.compose.runtime.rememberCoroutineScope()
-            LaunchedEffect(vm.nowOpen) { if (!vm.nowOpen) dragY.snapTo(0f) }
+            LaunchedEffect(vm.nowOpen) { if (vm.nowOpen) dragY = 0f else { kotlinx.coroutines.delay(500); dragY = 0f } }
+            val dragState = androidx.compose.foundation.gestures.rememberDraggableState { dragY = (dragY + it).coerceAtLeast(0f) }
             Box(
-                Modifier.fillMaxSize().graphicsLayer { translationY = dragY.value }.pointerInput(Unit) {
-                    detectVerticalDragGestures(
-                        onDragEnd = {
-                            scope.launch { if (dragY.value > size.height * 0.18f) vm.nowOpen = false else dragY.animateTo(0f, springy()) }
-                        },
-                        onDragCancel = { scope.launch { dragY.animateTo(0f, springy()) } },
-                    ) { change, dy -> change.consume(); scope.launch { dragY.snapTo((dragY.value + dy).coerceAtLeast(0f)) } }
-                },
-            ) {
-                // swipe down anywhere that is not a list or a slider: the full-screen player follows the finger and collapses into the mini player
-            val dragY = remember { androidx.compose.animation.core.Animatable(0f) }
-            val scope = androidx.compose.runtime.rememberCoroutineScope()
-            LaunchedEffect(vm.nowOpen) { if (!vm.nowOpen) dragY.snapTo(0f) }
-            Box(
-                Modifier.fillMaxSize().graphicsLayer { translationY = dragY.value }.pointerInput(Unit) {
-                    detectVerticalDragGestures(
-                        onDragEnd = { scope.launch { if (dragY.value > size.height * 0.15f) vm.nowOpen = false else dragY.animateTo(0f, springy()) } },
-                        onDragCancel = { scope.launch { dragY.animateTo(0f, springy()) } },
-                    ) { change, dy -> change.consume(); scope.launch { dragY.snapTo((dragY.value + dy).coerceAtLeast(0f)) } }
-                },
+                Modifier.fillMaxSize().onSizeChanged { h = it.height.toFloat() }.graphicsLayer { translationY = dragY }
+                    .draggable(dragState, androidx.compose.foundation.gestures.Orientation.Vertical, onDragStopped = { v ->
+                        val collapse = dragY > h * 0.2f || v > 1400f
+                        scope.launch {
+                            if (collapse) {
+                                androidx.compose.animation.core.animate(dragY, h, v.coerceAtLeast(0f), tween(220, easing = androidx.compose.animation.core.FastOutLinearInEasing)) { x, _ -> dragY = x }
+                                vm.nowOpen = false
+                            } else androidx.compose.animation.core.animate(dragY, 0f, v, springy()) { x, _ -> dragY = x }
+                        }
+                    }),
             ) {
                 NowPanel(vm, vm.tab, { vm.tab = it }, Modifier.fillMaxSize(), onClose = { vm.nowOpen = false }, rounded = false)
-            }
             }
         }
     }
