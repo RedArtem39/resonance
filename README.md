@@ -7,6 +7,7 @@
 <p align="center">
   An offline music player with a <b>Material 3 Expressive</b> look, a real 10-band equalizer,
   word-by-word synced lyrics and built-in YouTube search &amp; download.
+  For <b>Windows</b> and <b>Android</b>.
 </p>
 
 > **Honest note: this project is vibe-coded.** I (the author) did not write the code by hand — it was produced in conversation with an AI
@@ -55,6 +56,10 @@
 
 ## Install
 
+**Android** (8.0+): download `Resonance-<version>.apk` from the [Releases](../../releases) page and open it (Android will ask you to allow installing from your browser or file manager). It is a native app (Kotlin, Jetpack Compose) with the same look and features — see [Android](#android) below.
+
+**Windows:**
+
 Download `Resonance-Setup-<version>.exe` from the [Releases](../../releases) page and run it. It is a small custom installer (also built with Electron, see [`installer/`](installer)): per-user, no administrator rights, it creates shortcuts and registers an uninstaller in *Apps & features*. Run it again later to update or repair.
 
 The installer is **not code-signed**, so Windows SmartScreen may show an "unknown publisher" warning. Choose *More info → Run anyway*.
@@ -66,7 +71,18 @@ Silent uninstall: `"<install dir>\Resonance.exe" --uninstall --silent [--purge]`
 
 Resonance currently targets **Windows 10/11 (x64)**. The yt-dlp integration downloads the Windows executable.
 
-## Keyboard
+## Android
+
+Resonance also exists as a native Android app, developed on the [`android`](../../tree/android) branch (in the [`android/`](../../tree/android/android) folder, with its own README). It is a separate codebase, not a web wrapper: Kotlin, Jetpack Compose and Media3.
+
+- The same Material 3 Expressive look: a palette generated from the cover, shape-morphing buttons with spring motion, the wavy progress ring, the cookie-shaped cover, the glass-tube equalizer with its lightning.
+- The same features: library, queue, 10-band equalizer with balance / mono / swap / dynamics / limiter (a real DSP chain in the audio pipeline), visualizer, word-by-word synced lyrics, YouTube search and download, updates from GitHub Releases.
+- Phone-first layout: bottom navigation, a mini player and a full-screen player you can swipe down. Tablets get the three-column desktop layout.
+- Differences: deleting a track cannot be undone (no Recycle Bin), there is no "show in folder", WMA is not supported, and downloads live in the app's own folder. YouTube extraction uses [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) instead of yt-dlp.
+
+Build it with `./gradlew assembleRelease` inside `android/` (JDK 17+ and the Android SDK) — details in [`android/README.md`](../../blob/android/android/README.md).
+
+## Keyboard (Windows)
 
 | Key | Action |
 | --- | --- |
@@ -74,7 +90,7 @@ Resonance currently targets **Windows 10/11 (x64)**. The yt-dlp integration down
 | `Ctrl` + `→` / `←` | Next / previous track |
 | `/` | Focus search |
 
-## Build from source
+## Build from source (Windows)
 
 Requires [Node.js](https://nodejs.org) 20 or newer.
 
@@ -120,7 +136,7 @@ tools/             Icon generator
 
 ## Data and privacy
 
-- Settings, favourites and the equalizer state are stored in the app profile (`%APPDATA%\Resonance`).
+- Settings, favourites and the equalizer state are stored in the app profile (`%APPDATA%\Resonance` on Windows, the app's private storage on Android).
 - Network access: lyrics requests go to `lrclib.net`; YouTube search and downloads go to YouTube; the update check talks to `api.github.com`. Nothing else leaves your machine, and there is no telemetry.
 
 ## Legal note
@@ -138,7 +154,7 @@ What that means for you:
 
 ## Acknowledgements
 
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense), [yt-search](https://github.com/talmobi/yt-search) (MIT), [music-metadata](https://github.com/Borewit/music-metadata) (MIT), [Electron](https://www.electronjs.org) (MIT), [electron-builder](https://www.electron.build) (MIT; used only as a packager).
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense), [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) (GPL-3.0, Android), [Jetpack Compose and Media3](https://developer.android.com) (Apache-2.0, Android), [yt-search](https://github.com/talmobi/yt-search) (MIT), [music-metadata](https://github.com/Borewit/music-metadata) (MIT), [Electron](https://www.electronjs.org) (MIT), [electron-builder](https://www.electron.build) (MIT; used only as a packager).
 - Lyrics: [LRCLIB](https://lrclib.net).
 - The equalizer's band layout and presets, the audio panel (balance / mono / swap / dynamic range / channel test), and the idea of the lightning effect were inspired by the media widget of [ilyamiro/serpantinum](https://github.com/ilyamiro/serpantinum) (AGPL-3.0). No code or assets were copied: everything here is implemented from scratch.
 - Design language: [Material 3 Expressive](https://m3.material.io).
