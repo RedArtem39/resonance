@@ -66,6 +66,10 @@ Silent uninstall: `"<install dir>\Resonance.exe" --uninstall --silent [--purge]`
 
 Resonance currently targets **Windows 10/11 (x64)**. The yt-dlp integration downloads the Windows executable.
 
+## Android
+
+An Android port (Kotlin, Jetpack Compose, Media3) with the same look and feature set lives in [`android/`](android) — see its README for what is ported, how it differs, and how to build it.
+
 ## Keyboard
 
 | Key | Action |
