@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -76,8 +77,9 @@ fun MenuSheet(vm: AppVm) {
             LaunchedEffect(Unit) { shown = true }
             AnimatedVisibility(shown, enter = fadeIn(tween(160)) + slideInVertically(springy()) { it / 3 }) {
                 Column(
-                    Modifier.fillMaxWidth().navigationBarsPadding().padding(12.dp).clip(RoundedCornerShape(28.dp)).background(pal.surfaceHighest)
-                        .clickable(MutableInteractionSource(), null) {}.padding(8.dp),
+                    Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 72.dp).clip(RoundedCornerShape(28.dp)).background(pal.surfaceHighest)
+                        .clickable(MutableInteractionSource(), null) {}.heightIn(max = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.8f).dp)
+                        .verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(8.dp),
                 ) {
                     T(m.title, pal.onSurfaceVar, 13f, 650, Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
                     m.items.forEach { it ->

@@ -58,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
@@ -75,11 +76,26 @@ fun ResonanceRoot(vm: AppVm, pickFolder: () -> Unit, pickCookies: () -> Unit) {
     val chroma by animateFloatAsState(vm.chroma, tween(900, easing = SmoothEasing), label = "c")
     val pal = remember(hue, chroma, vm.darkTheme) { Pal(vm.darkTheme, hue, chroma) }
     val frame = remember { FrameState() }
-    // The animation clock: full frame rate while something moves (playback, visualizer, equalizer), a slow tick otherwise so seeks still repaint.
-    val busy = androidx.compose.runtime.rememberUpdatedState(vm.playing || vm.view == View.Eq || vm.vizMode != "off")
+    // The animation clock. Redraws are what costs battery and frames on weaker phones, so it ticks only as fast as needed:
+    // 60 fps for the equalizer and the visualizer, 30 fps while the full-screen player moves, once a second for the mini player's progress.
+    val rate = androidx.compose.runtime.rememberUpdatedState(
+        when {
+            vm.view == View.Eq || vm.vizMode != "off" -> 1
+            (vm.nowOpen || LocalConfiguration.current.screenWidthDp >= 840) && vm.playing -> 2
+            vm.playing -> 0
+            else -> -1
+        },
+    )
     LaunchedEffect(Unit) {
+        var last = 0L
         while (true) {
-            if (busy.value) withFrameNanos { frame.nanos = it } else { kotlinx.coroutines.delay(250); frame.nanos = System.nanoTime() }
+            when (rate.value) {
+                // time-based, not frame-based: phones run 90-120 Hz displays, and a drawn frame is only produced when this state changes
+                1 -> withFrameNanos { if (it - last >= 15_000_000L) { last = it; frame.nanos = it } }
+                2 -> withFrameNanos { if (it - last >= 32_000_000L) { last = it; frame.nanos = it } }
+                0 -> { kotlinx.coroutines.delay(1000); frame.nanos = System.nanoTime() }
+                else -> { kotlinx.coroutines.delay(400); frame.nanos = System.nanoTime() }
+            }
         }
     }
     val view = LocalView.current

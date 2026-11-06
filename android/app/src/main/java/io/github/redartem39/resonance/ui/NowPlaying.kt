@@ -336,7 +336,6 @@ private fun SyncedLyrics(vm: AppVm, l: Lyr.Lines) {
                 Box(
                     Modifier.fillMaxWidth().padding(vertical = 2.dp)
                         .graphicsLayer { scaleX = sc; scaleY = sc; transformOrigin = TransformOrigin(0f, 0.5f); alpha = al }
-                        .then(if (!isActive && d > 0 && android.os.Build.VERSION.SDK_INT >= 31) Modifier.blur((min(d, 4) * 0.45f).dp) else Modifier) // distance blur, like the desktop CSS
                         .clip(RoundedCornerShape(22.dp))
                         .combinedClickable(onClick = { vm.seekTo(((ln.t + 0.01) * 1000).toLong()); if (!vm.playing) vm.toggle() })
                         .padding(horizontal = 14.dp, vertical = 9.dp),
@@ -486,12 +485,10 @@ private fun Dock(vm: AppVm, seek: SeekState) {
         }
         SeekBar(vm, seek)
         Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            val cur = if (seek.active) seek.p * vm.durationSec() else vm.positionMs() / 1000.0
-            // read per frame so the clock ticks without recomposing the dock
-            val shown by remember { derivedStateOf { frame.nanos; if (seek.active) seek.p * vm.durationSec() else vm.positionMs() / 1000.0 } }
-            T(fmtTime(shown), pal.onSurfaceVar, 12f, 600)
+            // whole seconds only: the clock recomposes once a second, not on every frame
+            val shownSec by remember { derivedStateOf { frame.nanos; (if (seek.active) seek.p * vm.durationSec() else vm.positionMs() / 1000.0).toInt() } }
+            T(fmtTime(shownSec.toDouble()), pal.onSurfaceVar, 12f, 600)
             T(fmtTime(vm.durationSec()), pal.onSurfaceVar, 12f, 600)
-            @Suppress("UNUSED_VARIABLE") val unused = cur
         }
         Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
             Toggle("shuffle", vm.shuffle) { vm.toggleShuffle() }
