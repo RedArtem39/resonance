@@ -300,8 +300,7 @@ private fun SyncedLyrics(vm: AppVm, l: Lyr.Lines) {
 
     // every frame: which line is current, and how far into it we are
     LaunchedEffect(l) {
-        while (true) {
-            androidx.compose.runtime.withFrameNanos { }
+        androidx.compose.runtime.snapshotFlow { frame.nanos }.collect {
             val time = vm.positionMs() / 1000.0
             val t = time + 0.12
             var lo = 0; var hi = l.lines.size - 1; var idx = -1

@@ -132,35 +132,31 @@ private fun WideLayout(vm: AppVm, pickFolder: () -> Unit, pickCookies: () -> Uni
 
 @Composable
 private fun CompactLayout(vm: AppVm, pickFolder: () -> Unit, pickCookies: () -> Unit) {
-    Box(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val hPx = constraints.maxHeight.toFloat()
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)) {
             MainPane(vm, false, pickFolder, pickCookies, Modifier.weight(1f).fillMaxWidth().padding(start = 8.dp, end = 8.dp, top = 8.dp))
             if (vm.current != null) MiniPlayer(vm, { vm.nowOpen = true }, Modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp))
             BottomNav(vm)
         }
-        AnimatedVisibility(
-            vm.nowOpen, Modifier.fillMaxSize(),
-            enter = slideInVertically(tween(420, easing = SmoothEasing)) { it } + fadeIn(tween(250)),
-            exit = slideOutVertically(tween(320, easing = SmoothEasing)) { it } + fadeOut(tween(250)),
-        ) {
-            // swipe down anywhere that is not a list or a slider: the full-screen player follows the finger (synchronously, no lag),
-            // then glides on with the release velocity and collapses into the mini player
-            var dragY by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-            var h by remember { androidx.compose.runtime.mutableFloatStateOf(1f) }
-            val scope = androidx.compose.runtime.rememberCoroutineScope()
-            LaunchedEffect(vm.nowOpen) { if (vm.nowOpen) dragY = 0f else { kotlinx.coroutines.delay(500); dragY = 0f } }
-            val dragState = androidx.compose.foundation.gestures.rememberDraggableState { dragY = (dragY + it).coerceAtLeast(0f) }
+        // The full-screen player stays composed (building it during the slide-in dropped the first frames) and is moved by ONE offset:
+        // opening, closing, following the finger and settling all write the same value, so nothing fights and nothing jumps.
+        var offset by remember { androidx.compose.runtime.mutableFloatStateOf(hPx) }
+        var dragging by remember { androidx.compose.runtime.mutableStateOf(false) }
+        LaunchedEffect(vm.nowOpen, dragging, hPx) {
+            if (!dragging) androidx.compose.animation.core.animate(
+                offset, if (vm.nowOpen) 0f else hPx, animationSpec = tween(if (vm.nowOpen) 380 else 300, easing = SmoothEasing),
+            ) { v, _ -> offset = v }
+        }
+        LaunchedEffect(vm.current == null) { if (vm.current == null) vm.nowOpen = false }
+        val dragState = androidx.compose.foundation.gestures.rememberDraggableState { offset = (offset + it).coerceIn(0f, hPx) }
+        if (vm.current != null) {
             Box(
-                Modifier.fillMaxSize().onSizeChanged { h = it.height.toFloat() }.graphicsLayer { translationY = dragY }
-                    .draggable(dragState, androidx.compose.foundation.gestures.Orientation.Vertical, onDragStopped = { v ->
-                        val collapse = dragY > h * 0.2f || v > 1400f
-                        scope.launch {
-                            if (collapse) {
-                                androidx.compose.animation.core.animate(dragY, h, v.coerceAtLeast(0f), tween(220, easing = androidx.compose.animation.core.FastOutLinearInEasing)) { x, _ -> dragY = x }
-                                vm.nowOpen = false
-                            } else androidx.compose.animation.core.animate(dragY, 0f, v, springy()) { x, _ -> dragY = x }
-                        }
-                    }),
+                Modifier.fillMaxSize().graphicsLayer { translationY = offset }.draggable(
+                    dragState, androidx.compose.foundation.gestures.Orientation.Vertical,
+                    onDragStarted = { dragging = true },
+                    onDragStopped = { v -> vm.nowOpen = !(offset > hPx * 0.2f || v > 1400f); dragging = false },
+                ),
             ) {
                 NowPanel(vm, vm.tab, { vm.tab = it }, Modifier.fillMaxSize(), onClose = { vm.nowOpen = false }, rounded = false)
             }
@@ -232,12 +228,16 @@ private fun MainPane(vm: AppVm, wide: Boolean, pickFolder: () -> Unit, pickCooki
             }
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            Crossfade(Triple(vm.view, searching, 0), animationSpec = tween(180), label = "view") { (v, s, _) ->
-                when {
-                    s -> SearchScreen(vm, wide)
-                    v == View.Eq -> EqScreen(vm)
-                    v == View.Settings -> SettingsScreen(vm, pickFolder, pickCookies)
-                    else -> LibraryScreen(vm, wide, pickFolder)
+            androidx.compose.runtime.key(vm.view, searching) {
+                val a = remember { androidx.compose.animation.core.Animatable(0f) }
+                LaunchedEffect(Unit) { a.animateTo(1f, tween(160)) }
+                Box(Modifier.fillMaxSize().graphicsLayer { alpha = a.value }) {
+                    when {
+                        searching -> SearchScreen(vm, wide)
+                        vm.view == View.Eq -> EqScreen(vm)
+                        vm.view == View.Settings -> SettingsScreen(vm, pickFolder, pickCookies)
+                        else -> LibraryScreen(vm, wide, pickFolder)
+                    }
                 }
             }
         }
